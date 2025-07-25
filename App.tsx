@@ -1,3 +1,5 @@
+import "../styles/global.css";
+
 import { JobSearch } from "./components/JobSearch";
 import { FilterSidebar } from "./components/FilterSidebar";
 import { JobListings } from "./components/JobListings";
