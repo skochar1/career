@@ -1,15 +1,14 @@
 {
-    "compilerOptions": {
-      "target": "ES2020",
-      "lib": ["DOM", "ES2020"],
-      "module": "ESNext",
-      "moduleResolution": "node",
-      "jsx": "react-jsx",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "noImplicitAny": false
-    }
+  "compilerOptions": {
+    "target": "ES2020",                 // Great — modern features like optional chaining, nullish coalescing, etc.
+    "lib": ["DOM", "ES2020"],           // Includes both browser DOM and modern JS features — correct.
+    "module": "ESNext",                 // Good for tree-shaking and modern module resolution.
+    "moduleResolution": "node",        // Required to resolve modules like "react" or "lucide-react".
+    "jsx": "react-jsx",                 // Correct for React 17+ (no need to import React explicitly in every file).
+    "strict": true,                     // Enables all strict type-checking options — good practice.
+    "esModuleInterop": true,           // Ensures compatibility with CommonJS modules — good.
+    "skipLibCheck": true,              // Speeds up builds by skipping type checking in node_modules — usually fine.
+    "forceConsistentCasingInFileNames": true,  // Prevents case mismatch issues — important for cross-platform dev.
+    "noImplicitAny": false             // 👈 Optional — disabling this makes TypeScript more forgiving.
   }
-  
+}
