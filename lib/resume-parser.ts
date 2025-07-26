@@ -1,16 +1,15 @@
-import OpenAI from 'openai';
-import mammoth from 'mammoth';
+// lib/resume-parser.ts
+
+import OpenAI from "openai";
+import mammoth from "mammoth";
+
+// DO NOT import pdf-parse at the top!
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Check if API key is configured
-if (!process.env.OPENAI_API_KEY) {
-  console.error('OPENAI_API_KEY environment variable is not set!');
-}
-
-interface ResumeFile {
+export interface ResumeFile {
   buffer: Buffer;
   filename: string;
   mimetype: string;
@@ -19,7 +18,7 @@ interface ResumeFile {
 export interface ParsedResumeData {
   skills: string[];
   keywords: string[];
-  experienceLevel: 'junior' | 'mid' | 'senior' | 'lead' | 'vp' | 'executive';
+  experienceLevel: "junior" | "mid" | "senior" | "lead" | "vp" | "executive";
   preferredLocations?: string[];
   summary: string;
   rawText: string;
@@ -33,203 +32,66 @@ export interface ParsedResumeData {
 }
 
 export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
+  let rawText = "";
   try {
-    console.log('Processing file type:', file.mimetype, 'Size:', file.size);
-    
-    // Use OpenAI to directly process the file content
-    console.log('Starting OpenAI file processing...');
-    const parsedData = await parseWithOpenAIFile(file);
-    console.log('OpenAI file processing completed successfully');
-    
-    return parsedData;
-
-  } catch (error: any) {
-    console.error('Error parsing resume:', error);
-    throw new Error(`Failed to parse resume file: ${error.message}`);
-  }
-}
-
-async function parseWithOpenAIFile(file: ResumeFile): Promise<ParsedResumeData> {
-  try {
-    // Convert file content based on type
-    let extractedText: string = '';
-    
-    if (file.mimetype === 'text/plain') {
-      console.log('Processing text file...');
-      extractedText = file.buffer.toString('utf-8');
+    // 1. Extract text based on mimetype
+    if (file.mimetype === "application/pdf") {
+      try {
+        // Dynamically import pdf-parse
+        const pdfParse = (await import("pdf-parse")).default;
+        const result = await pdfParse(file.buffer);
+        rawText = result.text;
+      } catch (e) {
+        throw new Error("Could not extract text from PDF file");
+      }
     } else if (
-      file.mimetype === 'application/pdf' ||
-      file.mimetype === 'application/msword' ||
-      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      console.log('Processing binary file...');
-      
-      // For PDF and DOCX files, we'll attempt to extract text using a simple approach
-      // and then send the extracted text to OpenAI for parsing
-      let rawText = '';
-      
-      if (file.mimetype === 'application/pdf') {
-        // Use OpenAI to directly process PDF files
-        try {
-          console.log('Processing PDF with OpenAI...');
-          
-          const base64Content = file.buffer.toString('base64');
-          const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [{
-              role: 'system',
-              content: 'You are a professional resume parser. Extract structured information from the provided PDF resume file and respond with valid JSON only.'
-            }, {
-              role: 'user',
-              content: `Please analyze this PDF resume file and extract the following information in JSON format:
-
-{
-  "rawText": "extracted text content from the PDF",
-  "skills": ["array", "of", "technical", "and", "professional", "skills"],
-  "keywords": ["comprehensive", "array", "of", "relevant", "keywords", "including", "technologies", "methodologies", "industry", "terms", "certifications", "tools", "frameworks", "programming", "languages", "soft", "skills", "domain", "expertise"],
-  "experienceLevel": "junior|mid|senior|lead|vp|executive",
-  "preferredLocations": ["array", "of", "locations"],
-  "summary": "2-3 sentence summary of candidate background",
-  "education": ["array", "of", "education"],
-  "workExperience": [{"company": "name", "position": "title", "duration": "dates", "description": "details"}]
-}
-
-Base64 PDF data: ${base64Content.substring(0, 50000)}`
-            }],
-            temperature: 0.1,
-            max_tokens: 3000
-          });
-          
-          const aiContent = response.choices[0]?.message?.content;
-          if (aiContent) {
-            try {
-              const parsedData = JSON.parse(aiContent);
-              return {
-                skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-                keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
-                experienceLevel: validateExperienceLevel(parsedData.experienceLevel),
-                preferredLocations: Array.isArray(parsedData.preferredLocations) ? parsedData.preferredLocations : [],
-                summary: parsedData.summary || 'Resume processed successfully',
-                education: Array.isArray(parsedData.education) ? parsedData.education : [],
-                workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : [],
-                rawText: parsedData.rawText || 'PDF content processed by AI'
-              };
-            } catch (parseError) {
-              console.log('Failed to parse AI response as JSON:', parseError);
-              throw new Error('AI returned invalid JSON response');
-            }
-          } else {
-            throw new Error('No response from OpenAI');
-          }
-        } catch (error) {
-          console.log('PDF processing with OpenAI failed:', error);
-          
-          // Final fallback: return a basic structure so the upload doesn't completely fail
-          return {
-            skills: [],
-            keywords: [],
-            experienceLevel: 'mid' as const,
-            preferredLocations: [],
-            summary: 'PDF file uploaded successfully. AI processing failed - please manually enter your skills for better job matching.',
-            education: [],
-            workExperience: [],
-            rawText: `PDF file: ${file.filename || 'resume.pdf'}`
-          };
-        }
-      } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        // Use mammoth library for proper DOCX text extraction
-        try {
-          console.log('Extracting text from DOCX using mammoth...');
-          const result = await mammoth.extractRawText({ buffer: file.buffer });
-          rawText = result.value;
-          console.log('DOCX text extracted successfully, length:', rawText.length);
-        } catch (error) {
-          console.log('DOCX parsing failed:', error);
-          // Fallback to basic extraction
-          try {
-            rawText = file.buffer.toString('utf-8');
-            rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
-            rawText = rawText.replace(/\s+/g, ' ').trim();
-          } catch {
-            rawText = 'DOCX content needs manual processing';
-          }
-        }
-      } else {
-        // For older DOC files, try basic text extraction
-        try {
-          rawText = file.buffer.toString('utf-8');
-          rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
-          rawText = rawText.replace(/\s+/g, ' ').trim();
-        } catch (error) {
-          console.log('DOC text extraction failed');
-          rawText = 'DOC content needs manual processing';
-        }
+      try {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        rawText = result.value;
+      } catch (e) {
+        throw new Error("Could not extract text from DOCX file");
       }
-      
-      // If we have reasonable text content, parse it with OpenAI
-      if (rawText.length > 50) {
-        console.log('Extracted text length:', rawText.length);
-        const parsedData = await parseWithOpenAI(rawText);
-        return {
-          ...parsedData,
-          rawText: rawText
-        };
-      } else {
-        // If text extraction failed, return a basic structure
-        console.log('Text extraction minimal, returning basic structure');
-        return {
-          skills: [],
-          keywords: [],
-          experienceLevel: 'mid' as const,
-          preferredLocations: [],
-          summary: `${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} file uploaded successfully. For best results, please upload a text file or ensure your ${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} contains selectable text.`,
-          education: [],
-          workExperience: [],
-          rawText: file.filename || 'Resume file uploaded'
-        };
-      }
-      
+    } else if (file.mimetype === "text/plain") {
+      rawText = file.buffer.toString("utf-8");
+    } else if (file.mimetype === "application/msword") {
+      // Legacy DOC, very basic
+      rawText = file.buffer.toString("utf-8");
     } else {
-      throw new Error(`Unsupported file type: ${file.mimetype}`);
+      throw new Error("Unsupported file type");
     }
 
-    // For text files, use the existing text parsing method
-    if (extractedText) {
-      console.log('Text extracted, length:', extractedText.length);
-      const parsedData = await parseWithOpenAI(extractedText);
-      return {
-        ...parsedData,
-        rawText: extractedText
-      };
-    }
-    
-    throw new Error('No content could be extracted from the file');
+    // 2. Clean up the text
+    rawText = rawText.replace(/\s+/g, " ").trim();
 
+    // 3. If rawText is very short, fail
+    if (!rawText || rawText.length < 50) {
+      throw new Error("Resume content is too short or could not be extracted");
+    }
+
+    // 4. Pass text to OpenAI for structure extraction
+    const parsedData = await parseWithOpenAI(rawText);
+    return { ...parsedData, rawText };
   } catch (error: any) {
-    console.error('Error in parseWithOpenAIFile:', error);
-    
-    // Fallback for any file type - try to extract basic text
-    let fallbackText = '';
-    try {
-      fallbackText = file.buffer.toString('utf-8');
-    } catch {
-      fallbackText = 'Resume content could not be extracted';
-    }
-    
+    // Fallback: Minimal parsed data, still return something
     return {
       skills: [],
       keywords: [],
-      experienceLevel: 'mid',
+      experienceLevel: "mid",
       preferredLocations: [],
-      summary: 'Resume uploaded but could not be fully processed. Please try a different format.',
+      summary: `Resume uploaded but parsing failed (${error.message}).`,
       education: [],
       workExperience: [],
-      rawText: fallbackText
+      rawText,
     };
   }
 }
 
-async function parseWithOpenAI(resumeText: string): Promise<Omit<ParsedResumeData, 'rawText'>> {
+async function parseWithOpenAI(
+  resumeText: string
+): Promise<Omit<ParsedResumeData, "rawText">> {
   const prompt = `
 Please analyze the following resume text and extract structured information. 
 
@@ -268,79 +130,117 @@ Example response format:
 `;
 
   try {
-    console.log('Calling OpenAI API...');
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: "gpt-4o",
       messages: [
         {
-          role: 'system',
-          content: 'You are a professional resume parser. Extract structured information from resumes and respond only with valid JSON.'
+          role: "system",
+          content:
+            "You are a professional resume parser. Extract structured information from resumes and respond only with valid JSON.",
         },
         {
-          role: 'user',
-          content: prompt
-        }
+          role: "user",
+          content: prompt,
+        },
       ],
       temperature: 0.1,
-      max_tokens: 2000
+      max_tokens: 2000,
     });
 
-    console.log('OpenAI API response received');
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('No response from OpenAI');
+      throw new Error("No response from OpenAI");
     }
 
-    console.log('Parsing JSON response from OpenAI...');
     // Parse the JSON response
     const parsedData = JSON.parse(content);
-    console.log('JSON parsed successfully');
-    
-    // Validate and sanitize the response
+
     return {
       skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
       keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
       experienceLevel: validateExperienceLevel(parsedData.experienceLevel),
-      preferredLocations: Array.isArray(parsedData.preferredLocations) ? parsedData.preferredLocations : [],
-      summary: typeof parsedData.summary === 'string' ? parsedData.summary : 'No summary available',
-      education: Array.isArray(parsedData.education) ? parsedData.education : [],
-      workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : []
+      preferredLocations: Array.isArray(parsedData.preferredLocations)
+        ? parsedData.preferredLocations
+        : [],
+      summary:
+        typeof parsedData.summary === "string"
+          ? parsedData.summary
+          : "No summary available",
+      education: Array.isArray(parsedData.education)
+        ? parsedData.education
+        : [],
+      workExperience: Array.isArray(parsedData.workExperience)
+        ? parsedData.workExperience
+        : [],
     };
-
   } catch (error) {
-    console.error('Error parsing with OpenAI:', error);
-    
     // Fallback: basic keyword extraction
     return {
       skills: extractBasicSkills(resumeText),
-      keywords: extractBasicSkills(resumeText), // Use same extraction as fallback
-      experienceLevel: 'mid',
+      keywords: extractBasicSkills(resumeText),
+      experienceLevel: "mid",
       preferredLocations: [],
-      summary: 'Resume processed successfully',
+      summary: "Resume processed successfully",
       education: [],
-      workExperience: []
+      workExperience: [],
     };
   }
 }
 
-function validateExperienceLevel(level: string): ParsedResumeData['experienceLevel'] {
-  const validLevels: ParsedResumeData['experienceLevel'][] = ['junior', 'mid', 'senior', 'lead', 'vp', 'executive'];
-  return validLevels.includes(level as any) ? level as ParsedResumeData['experienceLevel'] : 'mid';
+function validateExperienceLevel(
+  level: string
+): ParsedResumeData["experienceLevel"] {
+  const validLevels: ParsedResumeData["experienceLevel"][] = [
+    "junior",
+    "mid",
+    "senior",
+    "lead",
+    "vp",
+    "executive",
+  ];
+  return validLevels.includes(level as any)
+    ? (level as ParsedResumeData["experienceLevel"])
+    : "mid";
 }
 
 function extractBasicSkills(text: string): string[] {
   const commonSkills = [
-    'JavaScript', 'Python', 'Java', 'React', 'Node.js', 'SQL', 'HTML', 'CSS',
-    'TypeScript', 'AWS', 'Docker', 'Kubernetes', 'Git', 'Linux', 'MongoDB',
-    'PostgreSQL', 'Redis', 'GraphQL', 'REST API', 'Microservices', 'Agile',
-    'Project Management', 'Leadership', 'Communication', 'Problem Solving',
-    'Data Analysis', 'Machine Learning', 'TensorFlow', 'Pandas', 'NumPy'
+    "JavaScript",
+    "Python",
+    "Java",
+    "React",
+    "Node.js",
+    "SQL",
+    "HTML",
+    "CSS",
+    "TypeScript",
+    "AWS",
+    "Docker",
+    "Kubernetes",
+    "Git",
+    "Linux",
+    "MongoDB",
+    "PostgreSQL",
+    "Redis",
+    "GraphQL",
+    "REST API",
+    "Microservices",
+    "Agile",
+    "Project Management",
+    "Leadership",
+    "Communication",
+    "Problem Solving",
+    "Data Analysis",
+    "Machine Learning",
+    "TensorFlow",
+    "Pandas",
+    "NumPy",
   ];
 
   const foundSkills: string[] = [];
   const lowerText = text.toLowerCase();
 
-  commonSkills.forEach(skill => {
+  commonSkills.forEach((skill) => {
     if (lowerText.includes(skill.toLowerCase())) {
       foundSkills.push(skill);
     }
@@ -348,3 +248,4 @@ function extractBasicSkills(text: string): string[] {
 
   return foundSkills;
 }
+

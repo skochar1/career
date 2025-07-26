@@ -13,9 +13,10 @@ if (isProduction) {
 }
 
 export async function POST(request: NextRequest) {
+  let file: File | undefined; // <-- Declare at the top for catch block!
   try {
     const formData = await request.formData();
-    const file = formData.get('resume') as File;
+    file = formData.get('resume') as File;
     const sessionId = formData.get('sessionId') as string;
 
     if (!file) {
