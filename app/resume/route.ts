@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '../../lib/database';
-import pdf from 'pdf-parse';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ['application/pdf', 'text/plain'];
+const ALLOWED_TYPES = ['text/plain'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only PDF and TXT files are allowed.' },
+        { error: 'Invalid file type. Only TXT files are allowed.' },
         { status: 400 }
       );
     }
@@ -45,12 +44,7 @@ export async function POST(request: NextRequest) {
     let resumeText = '';
     
     try {
-      if (file.type === 'application/pdf') {
-        const data = await pdf(buffer);
-        resumeText = data.text;
-      } else if (file.type === 'text/plain') {
-        resumeText = buffer.toString('utf-8');
-      }
+      resumeText = buffer.toString('utf-8');
     } catch (parseError) {
       return NextResponse.json(
         { error: 'Failed to parse resume file' },

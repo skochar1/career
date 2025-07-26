@@ -112,7 +112,7 @@ class JobSearchEngine {
 
     const scoredResults = new Map<number, number>();
 
-    tokens.forEach((token, index) => {
+    tokens.forEach((token) => {
       const exactMatches = this.index[token] || new Set();
       
       const prefixMatches = new Set<number>();
