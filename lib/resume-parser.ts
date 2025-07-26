@@ -18,6 +18,7 @@ interface ResumeFile {
 
 export interface ParsedResumeData {
   skills: string[];
+  keywords: string[];
   experienceLevel: 'junior' | 'mid' | 'senior' | 'lead' | 'vp' | 'executive';
   preferredLocations?: string[];
   summary: string;
@@ -84,7 +85,8 @@ async function parseWithOpenAIFile(file: ResumeFile): Promise<ParsedResumeData> 
 
 {
   "rawText": "extracted text content from the PDF",
-  "skills": ["array", "of", "skills"],
+  "skills": ["array", "of", "technical", "and", "professional", "skills"],
+  "keywords": ["comprehensive", "array", "of", "relevant", "keywords", "including", "technologies", "methodologies", "industry", "terms", "certifications", "tools", "frameworks", "programming", "languages", "soft", "skills", "domain", "expertise"],
   "experienceLevel": "junior|mid|senior|lead|vp|executive",
   "preferredLocations": ["array", "of", "locations"],
   "summary": "2-3 sentence summary of candidate background",
@@ -104,6 +106,7 @@ Base64 PDF data: ${base64Content.substring(0, 50000)}`
               const parsedData = JSON.parse(aiContent);
               return {
                 skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+                keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
                 experienceLevel: validateExperienceLevel(parsedData.experienceLevel),
                 preferredLocations: Array.isArray(parsedData.preferredLocations) ? parsedData.preferredLocations : [],
                 summary: parsedData.summary || 'Resume processed successfully',
@@ -124,6 +127,7 @@ Base64 PDF data: ${base64Content.substring(0, 50000)}`
           // Final fallback: return a basic structure so the upload doesn't completely fail
           return {
             skills: [],
+            keywords: [],
             experienceLevel: 'mid' as const,
             preferredLocations: [],
             summary: 'PDF file uploaded successfully. AI processing failed - please manually enter your skills for better job matching.',
@@ -175,6 +179,7 @@ Base64 PDF data: ${base64Content.substring(0, 50000)}`
         console.log('Text extraction minimal, returning basic structure');
         return {
           skills: [],
+          keywords: [],
           experienceLevel: 'mid' as const,
           preferredLocations: [],
           summary: `${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} file uploaded successfully. For best results, please upload a text file or ensure your ${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} contains selectable text.`,
@@ -213,6 +218,7 @@ Base64 PDF data: ${base64Content.substring(0, 50000)}`
     
     return {
       skills: [],
+      keywords: [],
       experienceLevel: 'mid',
       preferredLocations: [],
       summary: 'Resume uploaded but could not be fully processed. Please try a different format.',
@@ -233,17 +239,19 @@ ${resumeText}
 Please respond with a JSON object containing the following fields:
 
 1. "skills": An array of technical and professional skills mentioned in the resume
-2. "experienceLevel": One of "junior", "mid", "senior", "lead", "vp", or "executive" based on years of experience and role level
-3. "preferredLocations": An array of locations mentioned as preferred or current locations (if any)
-4. "summary": A 2-3 sentence summary of the candidate's background and expertise
-5. "education": An array of educational qualifications/degrees mentioned
-6. "workExperience": An array of objects with "company", "position", "duration", and "description" for each job
+2. "keywords": A comprehensive array of relevant keywords including technologies, methodologies, industry terms, certifications, tools, frameworks, programming languages, soft skills, and domain expertise
+3. "experienceLevel": One of "junior", "mid", "senior", "lead", "vp", or "executive" based on years of experience and role level
+4. "preferredLocations": An array of locations mentioned as preferred or current locations (if any)
+5. "summary": A 2-3 sentence summary of the candidate's background and expertise
+6. "education": An array of educational qualifications/degrees mentioned
+7. "workExperience": An array of objects with "company", "position", "duration", and "description" for each job
 
 Make sure the response is valid JSON. If any information is not available, use null or empty arrays as appropriate.
 
 Example response format:
 {
   "skills": ["JavaScript", "React", "Node.js", "Python"],
+  "keywords": ["JavaScript", "React", "Node.js", "Python", "Web Development", "API", "REST", "Git", "Agile", "Problem Solving", "Team Collaboration", "Frontend", "Backend", "Full-stack", "Database", "MongoDB", "PostgreSQL"],
   "experienceLevel": "mid",
   "preferredLocations": ["San Francisco", "Remote"],
   "summary": "Full-stack developer with 5 years of experience building web applications using modern JavaScript frameworks.",
@@ -291,6 +299,7 @@ Example response format:
     // Validate and sanitize the response
     return {
       skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+      keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
       experienceLevel: validateExperienceLevel(parsedData.experienceLevel),
       preferredLocations: Array.isArray(parsedData.preferredLocations) ? parsedData.preferredLocations : [],
       summary: typeof parsedData.summary === 'string' ? parsedData.summary : 'No summary available',
@@ -304,6 +313,7 @@ Example response format:
     // Fallback: basic keyword extraction
     return {
       skills: extractBasicSkills(resumeText),
+      keywords: extractBasicSkills(resumeText), // Use same extraction as fallback
       experienceLevel: 'mid',
       preferredLocations: [],
       summary: 'Resume processed successfully',

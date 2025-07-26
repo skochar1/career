@@ -19,40 +19,30 @@ interface ChatMessage {
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json();
-    if (!Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Invalid request: `messages` must be an array.' },
-        { status: 400 }
-      );
-    }
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Server misconfiguration: OPENAI_API_KEY not set.' },
-        { status: 500 }
-      );
+      console.error("OPENAI_API_KEY missing!");
+      return NextResponse.json({ error: 'OPENAI_API_KEY not set.' }, { status: 500 });
     }
 
-    // Construct the conversation for OpenAI. We use a system message to
-    // instruct the model to return JSON containing both the answer and
-    // suggestions. Each incoming message is mapped to the roles that
-    // OpenAI expects ("user" or "assistant").
+    // System prompt: strictly minified JSON, max four suggestions
     const openaiMessages = [
       {
         role: 'system',
         content:
-          'You are a helpful career assistant. When responding to a user, ' +
-          'return a JSON object with two keys: "response" containing your ' +
-          'reply to the user, and "suggestions" containing an array of up to ' +
-          'four concise follow‑up question suggestions. Do not include any ' +
-          'markdown or additional commentary – return strictly valid JSON.'
+          'You are a helpful career assistant. Always respond strictly as a minified JSON object with two keys: "response" (string) and "suggestions" (array of up to four strings). Do not include any text or formatting outside the JSON object. Example: {"response":"Your answer here","suggestions":["Follow-up 1","Follow-up 2"]}'
       },
       ...messages.map((msg: ChatMessage) => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.content
       }))
     ];
+
+    // Debug logging
+    console.log("API /api/chat called at", new Date().toISOString());
+    console.log("OpenAI messages:", JSON.stringify(openaiMessages, null, 2));
+    console.log("API KEY starts with:", apiKey.slice(0, 8));
 
     const apiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,14 +51,24 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-3.5-turbo', // <-- fallback for higher rate limits
         messages: openaiMessages,
-        temperature: 0.7
+        temperature: 0.3
       })
     });
 
+    if (apiRes.status === 429) {
+      const errText = await apiRes.text();
+      console.error("429 error details:", errText);
+      return NextResponse.json({
+        response: "I'm being rate-limited by OpenAI. Please wait a minute before trying again.",
+        suggestions: [],
+      });
+    }
+
     if (!apiRes.ok) {
       const errorText = await apiRes.text();
+      console.error("OpenAI API error:", errorText);
       return NextResponse.json(
         { error: 'OpenAI API error', details: errorText },
         { status: apiRes.status }
@@ -77,19 +77,17 @@ export async function POST(req: NextRequest) {
 
     const data = await apiRes.json();
     const content = data?.choices?.[0]?.message?.content;
+    console.log("OPENAI RAW CONTENT:", content);
+
     if (!content) {
-      return NextResponse.json(
-        { error: 'Invalid response from OpenAI' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Invalid response from OpenAI' }, { status: 500 });
     }
 
-    // Parse the JSON returned by the assistant. If parsing fails we
-    // fall back to returning the raw content string.
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch (e) {
+      console.error("Failed to parse OpenAI response:", content);
       return NextResponse.json({ response: content, suggestions: [] });
     }
 
@@ -98,6 +96,7 @@ export async function POST(req: NextRequest) {
       suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : []
     });
   } catch (err: any) {
+    console.error("Server error in /api/chat:", err);
     return NextResponse.json(
       { error: 'Unexpected server error', details: err?.message },
       { status: 500 }
