@@ -69,7 +69,7 @@ export function JobSearch() {
         formData.append('resume', uploadedFile);
         formData.append('session_id', Math.random().toString(36).substr(2, 9));
         
-        const response = await fetch('/api/resume/process', {
+        const response = await fetch('/api', {
           method: 'POST',
           body: formData,
         });
