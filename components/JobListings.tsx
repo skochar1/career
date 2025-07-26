@@ -1,9 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Label } from "./ui/label";
 import { MapPin, Clock, DollarSign, Building, Bookmark, ExternalLink, Filter, ChevronDown, ChevronUp, X } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useState } from "react";
@@ -122,25 +118,25 @@ export function JobListings() {
   return (
     <div className="flex-1" role="main" aria-label="Job search results">
       {/* Results Info */}
-      <div className="border-b border-border bg-background px-6 py-4">
+      <div className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <p className="text-muted-foreground">
+            <p className="text-gray-700 font-medium">
               <span className="sr-only">Found </span>
               12,847 jobs found
             </p>
-            <Button variant="outline" size="sm" aria-label="Toggle filters panel">
+            <button className="inline-flex items-center px-3 py-1 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-sm" aria-label="Toggle filters panel">
               <Filter className="h-4 w-4 mr-2" aria-hidden="true" />
               Filters
-            </Button>
+            </button>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="sort-select" className="text-sm text-muted-foreground">
+            <label htmlFor="sort-select" className="text-sm text-gray-600">
               Sort by:
-            </Label>
+            </label>
             <select 
               id="sort-select"
-              className="border border-border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="border border-gray-300 rounded px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               aria-label="Sort job results"
             >
               <option value="relevance">Relevance</option>
@@ -154,30 +150,25 @@ export function JobListings() {
 
       {/* Active Filters */}
       {activeFilters.length > 0 && (
-        <div className="px-6 py-4 border-b border-border bg-background">
+        <div className="px-6 py-3 border-b border-gray-200 bg-white">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Active filters">
             {activeFilters.map((filter) => (
-              <Badge 
+              <span 
                 key={filter} 
-                variant="secondary" 
-                className="gap-1"
+                className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-full text-sm"
                 role="button"
                 tabIndex={0}
                 aria-label={`Remove ${filter} filter`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    removeFilter(filter);
-                  }
-                }}
               >
                 {filter} 
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
+                <button
+                  className="ml-1 h-4 w-4 flex items-center justify-center rounded-full hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400"
                   onClick={() => removeFilter(filter)}
-                  aria-hidden="true"
-                />
-              </Badge>
+                  aria-label={`Remove ${filter} filter`}
+                >
+                  <X className="h-3 w-3 text-gray-500" aria-hidden="true" />
+                </button>
+              </span>
             ))}
           </div>
         </div>
@@ -191,171 +182,169 @@ export function JobListings() {
             const isSaved = savedJobs.has(job.id);
             
             return (
-              <Card 
-                key={job.id} 
-                className="hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+              <div 
+                key={job.id}
+                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                 role="listitem"
                 aria-labelledby={`job-title-${job.id}`}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <ImageWithFallback
-                        src={job.logo}
-                        alt={`${job.company} logo`}
-                        width={48}
-                        height={48}
-                        className="rounded-lg flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 
-                            id={`job-title-${job.id}`}
-                            className="hover:text-primary cursor-pointer font-medium"
-                            tabIndex={0}
-                            role="button"
-                            aria-describedby={`job-details-${job.id}`}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                // Handle job title click
-                              }
-                            }}
-                          >
-                            {job.title}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {job.workType}
-                          </Badge>
-                          {job.urgentHiring && (
-                            <Badge variant="outline" className="text-xs text-green-600 border-green-200">
-                              Actively hiring
-                            </Badge>
-                          )}
-                        </div>
-                        <div 
-                          id={`job-details-${job.id}`}
-                          className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap"
+                {/* Header with logo, title, and actions */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start gap-3 flex-1">
+                    <ImageWithFallback
+                      src={job.logo}
+                      alt={`${job.company} logo`}
+                      width={48}
+                      height={48}
+                      className="rounded-lg flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 
+                          id={`job-title-${job.id}`}
+                          className="text-lg font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
+                          tabIndex={0}
+                          role="button"
+                          aria-describedby={`job-details-${job.id}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              // Handle job title click
+                            }
+                          }}
                         >
-                          <span className="flex items-center gap-1">
-                            <Building className="h-3 w-3" aria-hidden="true" />
-                            {job.company}
+                          {job.title}
+                        </h3>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">
+                          {job.workType}
+                        </span>
+                        {job.urgentHiring && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-md">
+                            Actively hiring
                           </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" aria-hidden="true" />
-                            {job.location}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" aria-hidden="true" />
-                            {job.postedDate}
-                          </span>
-                        </div>
+                        )}
+                      </div>
+                      <div 
+                        id={`job-details-${job.id}`}
+                        className="flex items-center gap-4 text-sm text-gray-600"
+                      >
+                        <span className="flex items-center gap-1">
+                          <Building className="h-3 w-3" aria-hidden="true" />
+                          {job.company}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" aria-hidden="true" />
+                          {job.location}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" aria-hidden="true" />
+                          {job.postedDate}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => toggleSaveJob(job.id)}
-                        aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
-                        aria-pressed={isSaved}
-                      >
-                        <Bookmark 
-                          className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} 
-                          aria-hidden="true"
-                        />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        aria-label={`View ${job.title} on external site`}
-                      >
-                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-4 mb-3 flex-wrap">
-                    <Badge variant="secondary">{job.type}</Badge>
-                    <span className="flex items-center gap-1 text-sm">
-                      <DollarSign className="h-3 w-3" aria-hidden="true" />
-                      <span aria-label={`Salary range ${job.salary}`}>{job.salary}</span>
-                    </span>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {isExpanded ? job.fullDescription : job.description}
-                    </p>
-                    
-                    <Button 
-                      variant="link" 
-                      size="sm"
-                      className="p-0 h-auto text-primary hover:text-primary/80"
-                      onClick={() => toggleJobExpansion(job.id)}
-                      aria-expanded={isExpanded}
-                      aria-controls={`job-description-${job.id}`}
-                      aria-label={isExpanded ? `Show less details for ${job.title}` : `Show more details for ${job.title}`}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button 
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      onClick={() => toggleSaveJob(job.id)}
+                      aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
+                      aria-pressed={isSaved}
                     >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp className="h-3 w-3 mr-1" aria-hidden="true" />
-                          Show Less
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-3 w-3 mr-1" aria-hidden="true" />
-                          Read More
-                        </>
-                      )}
-                    </Button>
+                      <Bookmark 
+                        className={`h-4 w-4 ${isSaved ? 'fill-current text-blue-600' : ''}`} 
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <button 
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      aria-label={`View ${job.title} on external site`}
+                    >
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
+                </div>
+
+                {/* Job type and salary */}
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md font-medium">
+                    {job.type}
+                  </span>
+                  <span className="flex items-center gap-1 text-sm text-gray-600 font-medium">
+                    <DollarSign className="h-4 w-4" aria-hidden="true" />
+                    <span aria-label={`Salary range ${job.salary}`}>{job.salary}</span>
+                  </span>
+                </div>
+
+                {/* Description */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-700 mb-2 leading-relaxed">
+                    {isExpanded ? job.fullDescription : job.description}
+                  </p>
                   
-                  <div className="flex flex-wrap gap-2 mb-4" role="list" aria-label="Required skills">
+                  <button 
+                    className="text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:underline inline-flex items-center"
+                    onClick={() => toggleJobExpansion(job.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`job-description-${job.id}`}
+                    aria-label={isExpanded ? `Show less details for ${job.title}` : `Show more details for ${job.title}`}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="h-3 w-3 mr-1" aria-hidden="true" />
+                        Read Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-3 w-3 mr-1" aria-hidden="true" />
+                        Read More
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Skills */}
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-2" role="list" aria-label="Required skills">
                     {job.skills.map((skill) => (
-                      <Badge 
-                        key={skill} 
-                        variant="outline" 
-                        className="text-xs"
+                      <span 
+                        key={skill}
+                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md"
                         role="listitem"
                       >
                         {skill}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
-                  
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm"
-                        aria-label={`Apply for ${job.title} position`}
-                      >
-                        Apply Now
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        aria-label={`View details for ${job.title}`}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-3">
+                  <button 
+                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
+                    aria-label={`Apply for ${job.title} position`}
+                  >
+                    Apply Now
+                  </button>
+                  <button 
+                    className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
+                    aria-label={`View details for ${job.title}`}
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>
         
         {/* Load More */}
         <div className="flex justify-center mt-8">
-          <Button 
-            variant="outline"
+          <button 
+            className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
             aria-label="Load more job listings"
           >
             Load More Jobs
-          </Button>
+          </button>
         </div>
       </div>
     </div>

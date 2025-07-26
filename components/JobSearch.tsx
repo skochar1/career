@@ -1,11 +1,8 @@
 "use client";
 
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Search, MapPin, Upload, FileText, Check } from "lucide-react";
-import { Badge } from "./ui/badge";
 import { useState } from "react";
 
 export function JobSearch() {
@@ -57,55 +54,54 @@ export function JobSearch() {
   return (
     <div className="bg-background">
       {/* Search Section */}
-      <div className="bg-primary text-primary-foreground py-8" role="search" aria-label="Job search">
+      <div className="bg-gray-900 text-white py-8" role="search" aria-label="Job search">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-center mb-6">Find your next opportunity</h2>
+            <h1 className="text-2xl font-bold text-center mb-6 text-white">Find your next opportunity</h1>
             
             <form onSubmit={handleSearchSubmit} className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-4 mb-4">
-                <div className="flex-1 relative">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="relative">
                   <Label htmlFor="job-search" className="sr-only">
                     Job title, company, or keywords
                   </Label>
                   <Search 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" 
                     aria-hidden="true"
                   />
-                  <Input
+                  <input
                     id="job-search"
                     placeholder="Job title, company, or keywords"
-                    className="pl-10 bg-white text-foreground"
+                    className="w-80 pl-10 pr-4 py-2.5 bg-white text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder:text-gray-500"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     aria-describedby="job-search-help"
                   />
                 </div>
-                <div className="flex-1 relative">
+                <div className="relative">
                   <Label htmlFor="location-search" className="sr-only">
                     Location
                   </Label>
                   <MapPin 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" 
                     aria-hidden="true"
                   />
-                  <Input
+                  <input
                     id="location-search"
                     placeholder="City, state, zip code, or remote"
-                    className="pl-10 bg-white text-foreground"
+                    className="w-80 pl-10 pr-4 py-2.5 bg-white text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder:text-gray-500"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     aria-describedby="location-search-help"
                   />
                 </div>
-                <Button 
+                <button 
                   type="submit"
-                  size="lg" 
-                  className="bg-white text-primary hover:bg-gray-50"
+                  className="px-6 py-2.5 bg-gray-100 text-black border border-gray-300 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-sm"
                   aria-describedby="search-help"
                 >
                   Search Jobs
-                </Button>
+                </button>
               </div>
               
               <div className="sr-only">
@@ -117,19 +113,18 @@ export function JobSearch() {
 
             {/* Resume Upload Section */}
             <div className="text-center mb-4">
-              <p className="text-primary-foreground/80 mb-3 text-sm">
+              <p className="text-white/80 mb-3 text-sm">
                 Or get personalized job recommendations
               </p>
               <Dialog open={isResumeDialogOpen} onOpenChange={setIsResumeDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button 
-                    variant="secondary" 
-                    className="bg-white/10 text-primary-foreground border-white/20 hover:bg-white/20"
+                  <button 
+                    className="inline-flex items-center px-6 py-2.5 bg-gray-800 text-white border border-gray-700 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent font-medium text-sm"
                     aria-describedby="resume-upload-help"
                   >
                     <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                     Submit Resume for Curated Results
-                  </Button>
+                  </button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md" aria-describedby="resume-dialog-desc">
                   <DialogHeader>
@@ -182,16 +177,20 @@ export function JobSearch() {
                       </div>
                       
                       <div className="flex justify-between">
-                        <Button variant="outline" onClick={resetUpload}>
+                        <button 
+                          className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium"
+                          onClick={resetUpload}
+                        >
                           Cancel
-                        </Button>
-                        <Button 
+                        </button>
+                        <button 
+                          className="px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium"
                           onClick={handleSubmitResume} 
                           disabled={!uploadedFile || isUploading}
                           aria-describedby="submit-resume-help"
                         >
                           {isUploading ? "Processing..." : "Get Curated Jobs"}
-                        </Button>
+                        </button>
                       </div>
                       <div className="sr-only">
                         <p id="submit-resume-help">
@@ -209,12 +208,18 @@ export function JobSearch() {
                         We're analyzing your resume to find the best job matches. You'll see personalized recommendations shortly.
                       </p>
                       <div className="space-y-2">
-                        <Button onClick={resetUpload} className="w-full">
+                        <button 
+                          className="w-full px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium"
+                          onClick={resetUpload}
+                        >
                           View Curated Jobs
-                        </Button>
-                        <Button variant="outline" onClick={resetUpload} className="w-full">
+                        </button>
+                        <button 
+                          className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium"
+                          onClick={resetUpload}
+                        >
                           Upload Another Resume
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -231,27 +236,17 @@ export function JobSearch() {
             <div className="flex flex-wrap gap-2 justify-center">
               <span className="sr-only">Quick search options:</span>
               {quickSearchTags.map((tag) => (
-                <Badge 
+                <button 
                   key={tag.value}
-                  variant="secondary" 
-                  className="cursor-pointer hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  tabIndex={0}
-                  role="button"
+                  className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-sm hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                   aria-label={`Quick search for ${tag.label}`}
                   onClick={() => {
                     setSearchQuery(tag.value);
                     // Trigger search
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSearchQuery(tag.value);
-                      // Trigger search
-                    }
-                  }}
                 >
                   {tag.label}
-                </Badge>
+                </button>
               ))}
             </div>
           </div>
