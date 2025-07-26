@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger
 } from "./ui/dialog";
-import { Label } from "./ui/label";
 import { Search, MapPin, Upload, FileText, Check } from "lucide-react";
 import { useState } from "react";
 
@@ -19,21 +18,75 @@ export function JobSearch() {
   const [uploadComplete, setUploadComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Check file size only - accept any file type
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        alert('File size must be less than 10MB.');
+        return;
+      }
       setUploadedFile(file);
     }
   };
 
-  const handleSubmitResume = () => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      
+      // Check file size only - accept any file type
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        alert('File size must be less than 10MB.');
+        return;
+      }
+      
+      setUploadedFile(file);
+    }
+  };
+
+  const handleSubmitResume = async () => {
     if (uploadedFile) {
       setIsUploading(true);
-      setTimeout(() => {
+      
+      try {
+        const formData = new FormData();
+        formData.append('resume', uploadedFile);
+        formData.append('session_id', Math.random().toString(36).substr(2, 9));
+        
+        const response = await fetch('/api/resume/process', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Resume processed:', result);
+          setUploadComplete(true);
+        } else {
+          throw new Error('Failed to process resume');
+        }
+      } catch (error) {
+        console.error('Error processing resume:', error);
+        alert('Error processing resume. Please try again.');
+      } finally {
         setIsUploading(false);
-        setUploadComplete(true);
-      }, 2000);
+      }
     }
   };
 
@@ -70,10 +123,8 @@ export function JobSearch() {
                 className="flex-1 px-3 py-3 bg-white !text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Job title, company, or keywords"
               />
-              <Label htmlFor="job-search" className="sr-only">
-                Job title, company, or keywords
-              </Label>
             </div>
 
             <div className="flex items-center bg-white rounded-full border border-gray-300 shadow-sm">
@@ -84,10 +135,8 @@ export function JobSearch() {
                 className="flex-1 px-3 py-3 bg-white !text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
                 value={locationQuery}
                 onChange={(e) => setLocationQuery(e.target.value)}
+                aria-label="Location"
               />
-              <Label htmlFor="location-search" className="sr-only">
-                Location
-              </Label>
             </div>
 
             <button
@@ -110,47 +159,58 @@ export function JobSearch() {
                 Submit Resume for Curated Results
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md !bg-white border border-gray-300 shadow-xl">
               <DialogHeader>
-                <DialogTitle>Submit Your Resume</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-gray-900">Submit Your Resume</DialogTitle>
+                <DialogDescription className="text-gray-600">
                   Upload your resume to get personalized job recommendations.
                 </DialogDescription>
               </DialogHeader>
 
               {!uploadComplete ? (
                 <div className="space-y-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center relative">
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-8 text-center relative transition-all duration-200 ${
+                      isDragOver 
+                        ? '!border-blue-500 !bg-blue-50 shadow-md' 
+                        : uploadedFile 
+                          ? '!border-green-500 !bg-green-50 shadow-sm' 
+                          : '!border-gray-400 !bg-gray-100 hover:!border-gray-600 hover:!bg-gray-200 hover:shadow-sm'
+                    }`}
+                    style={{
+                      backgroundColor: isDragOver ? '#dbeafe' : uploadedFile ? '#dcfce7' : '#f3f4f6',
+                      borderColor: isDragOver ? '#3b82f6' : uploadedFile ? '#22c55e' : '#9ca3af'
+                    }}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     {uploadedFile ? (
-                      <div className="flex items-center justify-center gap-2 text-green-600">
-                        <FileText className="h-8 w-8" />
-                        <div>
-                          <p className="font-medium">{uploadedFile.name}</p>
-                          <p className="text-sm text-gray-500">
+                      <div className="flex items-center justify-center gap-3 text-green-700">
+                        <FileText className="h-10 w-10" />
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900 text-base">{uploadedFile.name}</p>
+                          <p className="text-sm text-gray-600">
                             {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div>
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                        <p className="text-sm text-gray-500 mb-2">
-                          Drop your resume here or click to browse
+                      <div className={`transition-all duration-200 ${isDragOver ? 'scale-105' : ''}`}>
+                        <Upload className={`h-12 w-12 mx-auto mb-3 ${isDragOver ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <p className={`text-base mb-2 font-medium ${isDragOver ? 'text-blue-800' : 'text-gray-700'}`}>
+                          {isDragOver ? 'Drop your resume here!' : 'Drop your resume here or click to browse'}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Supports PDF, DOC, DOCX (Max 5MB)
+                        <p className="text-sm text-gray-500">
+                          Supports any file type (Max 10MB)
                         </p>
                       </div>
                     )}
-                    <Label htmlFor="resume-upload" className="sr-only">
-                      Upload resume file
-                    </Label>
                     <input
                       id="resume-upload"
                       type="file"
-                      accept=".pdf,.doc,.docx"
                       onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                   </div>
 

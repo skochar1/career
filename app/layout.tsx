@@ -1,5 +1,4 @@
 import "../styles/global.css";
-import { BodyHydrationFix } from "../components/bodyhydration"; // adjust if needed
 
 /**
  * RootLayout wraps all pages in the application.
@@ -8,8 +7,7 @@ import { BodyHydrationFix } from "../components/bodyhydration"; // adjust if nee
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white font-sans antialiased text-black">
-        <BodyHydrationFix />
+      <body suppressHydrationWarning={true}>
         {children}
       </body>
     </html>

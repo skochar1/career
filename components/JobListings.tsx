@@ -124,20 +124,20 @@ export function JobListings() {
         </div>
       </div>
       {/* Job list */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {mockJobs.map((job) => {
           const isExpanded = expandedJobs.has(job.id);
           const isSaved = savedJobs.has(job.id);
           return (
             <div
               key={job.id}
-              className="bg-white rounded-2xl shadow-md border border-gray-200 p-8 mb-1 transition hover:shadow-lg"
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition hover:shadow-md"
               role="listitem"
               aria-labelledby={`job-title-${job.id}`}
             >
               {/* Header: logo, title, tags, save/ext link */}
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-5 flex-1">
+                <div className="flex items-start gap-3 flex-1">
                   {/* Logo */}
                   <ImageWithFallback
                     src={job.logo}
@@ -149,26 +149,26 @@ export function JobListings() {
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
                     {/* Title & tags */}
-                    <div className="flex flex-wrap gap-2 items-center mb-2">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
                       <h3
                         id={`job-title-${job.id}`}
-                        className="text-2xl font-semibold text-gray-900 mr-2"
+                        className="text-lg font-semibold text-gray-900 mr-2"
                       >
                         {job.title}
                       </h3>
                       {job.workType && (
-                        <span className="bg-gray-100 text-gray-800 rounded-full px-4 py-1 text-sm font-medium">
+                        <span className="bg-gray-100 text-gray-800 rounded-full px-2 py-0.5 text-xs font-medium">
                           {job.workType}
                         </span>
                       )}
                       {job.urgentHiring && (
-                        <span className="bg-green-100 text-green-700 rounded-full px-4 py-1 text-sm font-medium">
+                        <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium">
                           Actively hiring
                         </span>
                       )}
                     </div>
                     {/* Company/location/date */}
-                    <div className="flex flex-wrap gap-6 items-center text-gray-500 text-base mb-2">
+                    <div className="flex flex-wrap gap-4 items-center text-gray-500 text-sm mb-1">
                       <span className="flex items-center gap-1">
                         <Building className="h-4 w-4" aria-hidden="true" />
                         <span>{job.company}</span>
@@ -185,41 +185,41 @@ export function JobListings() {
                   </div>
                 </div>
                 {/* Save/ext links */}
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-1">
                   <button
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
                     onClick={() => toggleSaveJob(job.id)}
                     aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
                     aria-pressed={isSaved}
                   >
                     <Bookmark
-                      className={`h-6 w-6 ${isSaved ? 'fill-current text-blue-600' : ''}`}
+                      className={`h-4 w-4 ${isSaved ? 'fill-current text-blue-600' : ''}`}
                       aria-hidden="true"
                     />
                   </button>
                   <button
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
                     aria-label={`View ${job.title} on external site`}
                   >
-                    <ExternalLink className="h-6 w-6" aria-hidden="true" />
+                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               {/* Salary/type */}
-              <div className="flex items-center gap-3 mt-5 mb-4">
-                <span className="bg-gray-100 text-gray-900 rounded-full px-5 py-2 text-base font-medium">
+              <div className="flex items-center gap-2 mt-2 mb-2">
+                <span className="bg-gray-100 text-gray-900 rounded px-2 py-1 text-sm font-medium">
                   {job.type}
                 </span>
-                <span className="text-gray-800 font-semibold text-lg">{job.salary}</span>
+                <span className="text-gray-800 font-semibold text-sm">{job.salary}</span>
               </div>
 
               {/* Description */}
-              <div className="text-gray-500 text-lg mb-4 max-w-3xl">
+              <div className="text-gray-500 text-sm mb-2 max-w-3xl">
                 {isExpanded ? job.fullDescription : job.description}
               </div>
               <button
-                className="text-base text-blue-600 hover:text-blue-800 focus:outline-none focus:underline inline-flex items-center mb-4"
+                className="text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:underline inline-flex items-center mb-2"
                 onClick={() => toggleJobExpansion(job.id)}
                 aria-expanded={isExpanded}
                 aria-controls={`job-description-${job.id}`}
@@ -239,11 +239,11 @@ export function JobListings() {
               </button>
 
               {/* Skills */}
-              <div className="flex flex-wrap gap-3 mb-7">
+              <div className="flex flex-wrap gap-2 mb-3">
                 {job.skills.map((skill) => (
                   <span
                     key={skill}
-                    className="bg-gray-100 text-gray-700 px-4 py-1 rounded-full text-base font-medium"
+                    className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium"
                   >
                     {skill}
                   </span>
@@ -251,15 +251,15 @@ export function JobListings() {
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <button
-                  className="bg-black text-white rounded-xl px-8 py-3 font-semibold text-base hover:bg-gray-900 transition"
+                  className="bg-black text-white rounded px-4 py-2 font-medium text-sm hover:bg-gray-900 transition"
                   aria-label={`Apply for ${job.title} position`}
                 >
                   Apply Now
                 </button>
                 <button
-                  className="bg-white border border-gray-300 rounded-xl px-8 py-3 text-gray-800 font-semibold text-base hover:bg-gray-100 transition"
+                  className="bg-white border border-gray-300 rounded px-4 py-2 text-gray-800 font-medium text-sm hover:bg-gray-100 transition"
                   aria-label={`View details for ${job.title}`}
                 >
                   View Details
@@ -278,7 +278,6 @@ export function JobListings() {
           </button>
         </div>
 
-        <button className="bg-blue-600 text-white rounded-full px-6 py-3 shadow-lg font-bold mt-8">Tailwind Test</button>
 
       </div>
     </div>

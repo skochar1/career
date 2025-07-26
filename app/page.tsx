@@ -2,6 +2,7 @@ import { JobSearch } from '../components/JobSearch';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { JobListings } from '../components/JobListings';
 import { ChatAssistant } from '../components/ChatAssistant';
+import { Header } from '../components/Header';
 
 /**
  * Home page for the career portal. This page composes the high‑level
@@ -11,7 +12,8 @@ import { ChatAssistant } from '../components/ChatAssistant';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
       {/* Black header/hero area */}
       <div className="w-full bg-[#0B0C13] text-white pb-10">
         <div className="max-w-6xl mx-auto px-4 py-10">
