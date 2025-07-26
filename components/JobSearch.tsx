@@ -111,28 +111,28 @@ export function JobSearch() {
   ];
 
   return (
-    <div className="bg-white">
+    <div className="bg-background text-foreground">
       <div className="py-4" role="search" aria-label="Job search">
         <form onSubmit={handleSearchSubmit} className="space-y-4">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="flex items-center bg-white rounded-full border border-gray-300 shadow-sm">
+            <div className="flex items-center rounded-full border border-gray-300 bg-white shadow-sm overflow-hidden">
               <Search className="h-4 w-4 text-gray-400 ml-4" aria-hidden="true" />
               <input
                 id="job-search"
                 placeholder="Job title, company, or keywords"
-                className="flex-1 px-3 py-3 bg-white !text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
+                className="flex-1 px-3 py-3 text-black focus:outline-none text-sm placeholder:text-gray-500 bg-transparent min-w-[300px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Job title, company, or keywords"
               />
             </div>
 
-            <div className="flex items-center bg-white rounded-full border border-gray-300 shadow-sm">
+            <div className="flex items-center rounded-full border border-gray-300 bg-white shadow-sm overflow-hidden">
               <MapPin className="h-4 w-4 text-gray-400 ml-4" aria-hidden="true" />
               <input
                 id="location-search"
                 placeholder="City, state, zip code, or remote"
-                className="flex-1 px-3 py-3 bg-white !text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
+                className="flex-1 px-3 py-3 text-black focus:outline-none text-sm placeholder:text-gray-500 bg-transparent min-w-[300px]"
                 value={locationQuery}
                 onChange={(e) => setLocationQuery(e.target.value)}
                 aria-label="Location"

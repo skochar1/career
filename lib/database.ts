@@ -168,7 +168,7 @@ function seedSampleJobs() {
         insertJob.run(
           job.title, job.description, job.location, job.company, job.department,
           job.seniority_level, job.required_skills, job.preferred_skills,
-          job.salary_min, job.salary_max, job.employment_type, job.remote_eligible
+          job.salary_min, job.salary_max, job.employment_type, job.remote_eligible ? 1 : 0
         );
       }
     });

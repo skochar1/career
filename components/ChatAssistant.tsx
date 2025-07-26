@@ -137,14 +137,14 @@ export function ChatAssistant() {
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <Button
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow z-50"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow z-50 bg-blue-600 hover:bg-blue-700 text-white"
             aria-label="Open career chat assistant"
           >
             <MessageCircle className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        
-        <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full">
+      
+        <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full bg-white shadow-xl border border-border">
           <SheetHeader className="p-4 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
