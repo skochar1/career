@@ -10,14 +10,25 @@ import { ChatAssistant } from '../components/ChatAssistant';
  */
 export default function Home() {
   return (
-    <div className="relative">
+    <div className="min-h-screen bg-background">
       {/* Top section with search and resume upload */}
       <JobSearch />
+      
       {/* Main content area with filters and job results */}
-      <div className="flex">
-        <FilterSidebar />
-        <JobListings />
+      <div className="container mx-auto">
+        <div className="flex gap-6 px-4 py-6">
+          {/* Sidebar - Hidden on mobile, shown on desktop */}
+          <div className="hidden lg:block lg:w-80 flex-shrink-0">
+            <FilterSidebar />
+          </div>
+          
+          {/* Main content area */}
+          <div className="flex-1 min-w-0">
+            <JobListings />
+          </div>
+        </div>
       </div>
+      
       {/* Floating AI chat assistant */}
       <ChatAssistant />
     </div>

@@ -148,8 +148,8 @@ export function JobListings() {
       </div>
 
       {/* Job List */}
-      <div className="p-6">
-        <div className="space-y-4" role="list" aria-label="Job listings">
+      <div className="p-0">
+        <div className="space-y-4 p-6" role="list" aria-label="Job listings">
           {mockJobs.map((job) => {
             const isExpanded = expandedJobs.has(job.id);
             const isSaved = savedJobs.has(job.id);

@@ -57,7 +57,7 @@ export function JobSearch() {
   return (
     <div className="bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-border shadow-sm" role="banner">
+      <header className="bg-card border-b border-border shadow-sm" role="banner">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-8">

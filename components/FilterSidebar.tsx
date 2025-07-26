@@ -25,7 +25,7 @@ export function FilterSidebar() {
   const activeFilters = ["Remote", "Tech", "$50K+"];
 
   return (
-    <div className="w-80 bg-card border-r border-border h-full overflow-y-auto" role="complementary" aria-label="Job search filters">
+    <div className="w-full bg-card border border-border rounded-lg h-fit overflow-y-auto" role="complementary" aria-label="Job search filters">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h3 id="filters-heading">Filters</h3>
