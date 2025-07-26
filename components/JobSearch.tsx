@@ -99,7 +99,22 @@ export function JobSearch({ onSearch }: JobSearchProps) {
           }));
           
         } else {
-          throw new Error('Failed to process resume');
+          // Get the actual error message from the response
+          let errorMessage = 'Failed to process resume';
+          try {
+            const responseText = await response.text();
+            console.error('Raw server response:', responseText);
+            
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorData.details || errorMessage;
+            console.error('Parsed server error:', errorData);
+          } catch (e) {
+            console.error('Failed to parse error response:', e);
+            // If JSON parsing fails, try to get some info from the response
+            console.error('Response status:', response.status);
+            console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+          }
+          throw new Error(`Server error (${response.status}): ${errorMessage}`);
         }
       } catch (error) {
         console.error('Error processing resume:', error);

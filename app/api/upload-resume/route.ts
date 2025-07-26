@@ -175,8 +175,26 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error processing resume:', error);
     console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      fileName: file?.name,
+      fileType: file?.type,
+      fileSize: file?.size
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to process resume', details: error.message },
+      { 
+        error: 'Failed to process resume', 
+        details: error.message,
+        errorType: error.name,
+        fileInfo: file ? {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        } : null
+      },
       { status: 500 }
     );
   }

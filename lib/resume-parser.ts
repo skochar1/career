@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 
 const openai = new OpenAI({
@@ -69,22 +68,69 @@ async function parseWithOpenAIFile(file: ResumeFile): Promise<ParsedResumeData> 
       let rawText = '';
       
       if (file.mimetype === 'application/pdf') {
-        // Use pdf-parse library for proper PDF text extraction
+        // Use OpenAI to directly process PDF files
         try {
-          console.log('Extracting text from PDF using pdf-parse...');
-          const pdfData = await pdfParse(file.buffer);
-          rawText = pdfData.text;
-          console.log('PDF text extracted successfully, length:', rawText.length);
-        } catch (error) {
-          console.log('PDF parsing failed:', error);
-          // Fallback to basic extraction
-          try {
-            rawText = file.buffer.toString('utf-8');
-            rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
-            rawText = rawText.replace(/\s+/g, ' ').trim();
-          } catch {
-            rawText = 'PDF content needs manual processing';
+          console.log('Processing PDF with OpenAI...');
+          
+          const base64Content = file.buffer.toString('base64');
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [{
+              role: 'system',
+              content: 'You are a professional resume parser. Extract structured information from the provided PDF resume file and respond with valid JSON only.'
+            }, {
+              role: 'user',
+              content: `Please analyze this PDF resume file and extract the following information in JSON format:
+
+{
+  "rawText": "extracted text content from the PDF",
+  "skills": ["array", "of", "skills"],
+  "experienceLevel": "junior|mid|senior|lead|vp|executive",
+  "preferredLocations": ["array", "of", "locations"],
+  "summary": "2-3 sentence summary of candidate background",
+  "education": ["array", "of", "education"],
+  "workExperience": [{"company": "name", "position": "title", "duration": "dates", "description": "details"}]
+}
+
+Base64 PDF data: ${base64Content.substring(0, 50000)}`
+            }],
+            temperature: 0.1,
+            max_tokens: 3000
+          });
+          
+          const aiContent = response.choices[0]?.message?.content;
+          if (aiContent) {
+            try {
+              const parsedData = JSON.parse(aiContent);
+              return {
+                skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+                experienceLevel: validateExperienceLevel(parsedData.experienceLevel),
+                preferredLocations: Array.isArray(parsedData.preferredLocations) ? parsedData.preferredLocations : [],
+                summary: parsedData.summary || 'Resume processed successfully',
+                education: Array.isArray(parsedData.education) ? parsedData.education : [],
+                workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : [],
+                rawText: parsedData.rawText || 'PDF content processed by AI'
+              };
+            } catch (parseError) {
+              console.log('Failed to parse AI response as JSON:', parseError);
+              throw new Error('AI returned invalid JSON response');
+            }
+          } else {
+            throw new Error('No response from OpenAI');
           }
+        } catch (error) {
+          console.log('PDF processing with OpenAI failed:', error);
+          
+          // Final fallback: return a basic structure so the upload doesn't completely fail
+          return {
+            skills: [],
+            experienceLevel: 'mid' as const,
+            preferredLocations: [],
+            summary: 'PDF file uploaded successfully. AI processing failed - please manually enter your skills for better job matching.',
+            education: [],
+            workExperience: [],
+            rawText: `PDF file: ${file.filename || 'resume.pdf'}`
+          };
         }
       } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         // Use mammoth library for proper DOCX text extraction

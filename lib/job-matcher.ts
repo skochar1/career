@@ -126,7 +126,7 @@ Respond with ONLY a number between 0 and 100. No explanation needed.
   }
 }
 
-function calculateBasicMatch(resumeData: ParsedResumeData, job: Job): number {
+function calculateBasicMatch(resumeData: ParsedResumeData, job: any): number {
   let score = 0;
   
   // Skills matching (60% of score)
