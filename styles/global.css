@@ -11,7 +11,7 @@
   --color-tag-foreground: var(--tag-foreground);
   --color-tag-hover: var(--tag-hover);
 
-  --font-size: 14px;
+  --font-size: 14px; /* Set to 16px for Tailwind default, 14px if you prefer smaller */
   --background: #fff;
   --foreground: oklch(0.145 0 0);
   --card: #fff;
@@ -173,12 +173,19 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-size: var(--font-size);
+  font-size: var(--font-size); /* Set to 16px for Tailwind default look, or leave as 14px for your preference */
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-weight: var(--font-weight-normal);
   line-height: 1.5;
 }
 
+/* Remove font-size overrides from elements so Tailwind's text-sm, text-xs, etc. work as expected */
+p, label, input, button {
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+/* Optional: keep heading consistency */
 h1 {
   font-size: 2rem;
   font-weight: var(--font-weight-medium);
@@ -199,31 +206,14 @@ h4 {
   font-weight: var(--font-weight-medium);
   line-height: 1.5;
 }
-p, label, input, button {
-  font-size: 1rem;
-  font-weight: var(--font-weight-normal);
-  line-height: 1.5;
-}
 
 label, button {
   font-weight: var(--font-weight-medium);
 }
 
-/* Optional: Card and Button Utility Classes */
-.card {
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  padding: 1.5rem;
-}
+/* Remove any .card or .button class overrides if you rely on Tailwind! */
+.card {}
 
-.button {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border-radius: var(--radius-md);
-  font-weight: var(--font-weight-medium);
-  padding: 0.5rem 1.5rem;
-}
-
+/* Clean, minimal scrollbars */
 ::-webkit-scrollbar { width: 8px; background: var(--color-muted); }
 ::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 4px; }

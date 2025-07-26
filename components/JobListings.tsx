@@ -85,16 +85,12 @@ const mockJobs = [
 export function JobListings() {
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
-  const [activeFilters, setActiveFilters] = useState(["Remote", "Tech", "$50K+"]);
 
   const toggleJobExpansion = (jobId: number) => {
     setExpandedJobs(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
-      }
+      if (newSet.has(jobId)) newSet.delete(jobId);
+      else newSet.add(jobId);
       return newSet;
     });
   };
@@ -102,246 +98,188 @@ export function JobListings() {
   const toggleSaveJob = (jobId: number) => {
     setSavedJobs(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
-      }
+      if (newSet.has(jobId)) newSet.delete(jobId);
+      else newSet.add(jobId);
       return newSet;
     });
   };
 
-  const removeFilter = (filterToRemove: string) => {
-    setActiveFilters(prev => prev.filter(filter => filter !== filterToRemove));
-  };
-
   return (
     <div className="flex-1" role="main" aria-label="Job search results">
-      {/* Results Info */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <p className="text-gray-700 font-medium">
-              <span className="sr-only">Found </span>
-              12,847 jobs found
-            </p>
-            <button className="inline-flex items-center px-3 py-1 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-sm" aria-label="Toggle filters panel">
-              <Filter className="h-4 w-4 mr-2" aria-hidden="true" />
-              Filters
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="sort-select" className="text-sm text-gray-600">
-              Sort by:
-            </label>
-            <select 
-              id="sort-select"
-              className="border border-gray-300 rounded px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-label="Sort job results"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="date">Date Posted</option>
-              <option value="salary">Salary</option>
-              <option value="company">Company</option>
-            </select>
-          </div>
+      {/* Top bar: jobs found and sort */}
+      <div className="flex items-center justify-between px-0 py-4">
+        <div className="text-xl font-medium text-gray-500">12,847 jobs found</div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
+          <select 
+            id="sort-select"
+            className="border border-gray-200 rounded-xl px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Sort job results"
+          >
+            <option value="relevance">Relevance</option>
+            <option value="date">Date Posted</option>
+            <option value="salary">Salary</option>
+            <option value="company">Company</option>
+          </select>
         </div>
       </div>
-
-      {/* Active Filters */}
-      {activeFilters.length > 0 && (
-        <div className="px-6 py-4 border-b border-gray-200 bg-white">
-          <div className="flex flex-wrap gap-3 items-center" role="group" aria-label="Active filters">
-            {activeFilters.map((filter) => (
-              <span 
-                key={filter} 
-                className="inline-flex items-center px-4 py-2 rounded-full bg-[#f3f3f5] text-[#111322] text-sm font-medium"
-              >
-                {filter}
-                <button
-                  className="ml-2 text-[#717182] hover:text-red-600 focus:outline-none transition-colors"
-                  onClick={() => removeFilter(filter)}
-                  aria-label={`Remove ${filter} filter`}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Job List */}
-      <div className="p-0">
-        <div className="space-y-4 p-6" role="list" aria-label="Job listings">
-          {mockJobs.map((job) => {
-            const isExpanded = expandedJobs.has(job.id);
-            const isSaved = savedJobs.has(job.id);
-            
-            return (
-              <div 
-                key={job.id}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                role="listitem"
-                aria-labelledby={`job-title-${job.id}`}
-              >
-                {/* Header with logo, title, and actions */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3 flex-1">
-                    <ImageWithFallback
-                      src={job.logo}
-                      alt={`${job.company} logo`}
-                      width={48}
-                      height={48}
-                      className="rounded-lg flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="mb-3">
-                        <h3 
-                          id={`job-title-${job.id}`}
-                          className="text-xl font-semibold text-gray-900 hover:text-blue-600 cursor-pointer mb-2"
-                          tabIndex={0}
-                          role="button"
-                          aria-describedby={`job-details-${job.id}`}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              // Handle job title click
-                            }
-                          }}
-                        >
-                          {job.title}
-                        </h3>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-md font-medium">
-                            {job.workType}
-                          </span>
-                          {job.urgentHiring && (
-                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-md font-medium">
-                              Actively hiring
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div 
-                        id={`job-details-${job.id}`}
-                        className="flex flex-wrap items-center gap-6 text-sm text-gray-600"
+      {/* Job list */}
+      <div className="space-y-6">
+        {mockJobs.map((job) => {
+          const isExpanded = expandedJobs.has(job.id);
+          const isSaved = savedJobs.has(job.id);
+          return (
+            <div
+              key={job.id}
+              className="bg-white rounded-2xl shadow-md border border-gray-200 p-8 mb-1 transition hover:shadow-lg"
+              role="listitem"
+              aria-labelledby={`job-title-${job.id}`}
+            >
+              {/* Header: logo, title, tags, save/ext link */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-5 flex-1">
+                  {/* Logo */}
+                  <ImageWithFallback
+                    src={job.logo}
+                    alt={`${job.company} logo`}
+                    width={56}
+                    height={56}
+                    className="rounded-xl flex-shrink-0 object-cover w-14 h-14"
+                  />
+                  {/* Main info */}
+                  <div className="flex-1 min-w-0">
+                    {/* Title & tags */}
+                    <div className="flex flex-wrap gap-2 items-center mb-2">
+                      <h3
+                        id={`job-title-${job.id}`}
+                        className="text-2xl font-semibold text-gray-900 mr-2"
                       >
-                        <span className="flex items-center gap-2">
-                          <Building className="h-4 w-4" aria-hidden="true" />
-                          <span className="font-medium">{job.company}</span>
+                        {job.title}
+                      </h3>
+                      {job.workType && (
+                        <span className="bg-gray-100 text-gray-800 rounded-full px-4 py-1 text-sm font-medium">
+                          {job.workType}
                         </span>
-                        <span className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" aria-hidden="true" />
-                          <span>{job.location}</span>
+                      )}
+                      {job.urgentHiring && (
+                        <span className="bg-green-100 text-green-700 rounded-full px-4 py-1 text-sm font-medium">
+                          Actively hiring
                         </span>
-                        <span className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" aria-hidden="true" />
-                          <span>{job.postedDate}</span>
-                        </span>
-                      </div>
+                      )}
+                    </div>
+                    {/* Company/location/date */}
+                    <div className="flex flex-wrap gap-6 items-center text-gray-500 text-base mb-2">
+                      <span className="flex items-center gap-1">
+                        <Building className="h-4 w-4" aria-hidden="true" />
+                        <span>{job.company}</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" aria-hidden="true" />
+                        <span>{job.location}</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" aria-hidden="true" />
+                        <span>{job.postedDate}</span>
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button 
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                      onClick={() => toggleSaveJob(job.id)}
-                      aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
-                      aria-pressed={isSaved}
-                    >
-                      <Bookmark 
-                        className={`h-4 w-4 ${isSaved ? 'fill-current text-blue-600' : ''}`} 
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button 
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                      aria-label={`View ${job.title} on external site`}
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
                 </div>
-
-                {/* Salary */}
-                <div className="mb-5">
-                  <span className="flex items-center gap-2 text-base text-gray-800 font-semibold">
-                    <DollarSign className="h-5 w-5" aria-hidden="true" />
-                    <span aria-label={`Salary range ${job.salary}`}>{job.salary}</span>
-                  </span>
-                </div>
-
-                {/* Description */}
-                <div className="mb-4">
-                  <p className="text-sm text-gray-700 mb-2 leading-relaxed">
-                    {isExpanded ? job.fullDescription : job.description}
-                  </p>
-                  
-                  <button 
-                    className="text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:underline inline-flex items-center"
-                    onClick={() => toggleJobExpansion(job.id)}
-                    aria-expanded={isExpanded}
-                    aria-controls={`job-description-${job.id}`}
-                    aria-label={isExpanded ? `Show less details for ${job.title}` : `Show more details for ${job.title}`}
+                {/* Save/ext links */}
+                <div className="flex flex-col items-end gap-2">
+                  <button
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    onClick={() => toggleSaveJob(job.id)}
+                    aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
+                    aria-pressed={isSaved}
                   >
-                    {isExpanded ? (
-                      <>
-                        <ChevronUp className="h-3 w-3 mr-1" aria-hidden="true" />
-                        Read Less
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-3 w-3 mr-1" aria-hidden="true" />
-                        Read More
-                      </>
-                    )}
+                    <Bookmark
+                      className={`h-6 w-6 ${isSaved ? 'fill-current text-blue-600' : ''}`}
+                      aria-hidden="true"
+                    />
                   </button>
-                </div>
-
-                {/* Skills */}
-                <div className="mb-6">
-                  <div className="flex flex-wrap gap-2" role="list" aria-label="Required skills">
-                    {job.skills.map((skill) => (
-                      <span 
-                        key={skill}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md"
-                        role="listitem"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex items-center gap-3">
-                  <button 
-                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
-                    aria-label={`Apply for ${job.title} position`}
+                  <button
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    aria-label={`View ${job.title} on external site`}
                   >
-                    Apply Now
-                  </button>
-                  <button 
-                    className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
-                    aria-label={`View details for ${job.title}`}
-                  >
-                    View Details
+                    <ExternalLink className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-        
+
+              {/* Salary/type */}
+              <div className="flex items-center gap-3 mt-5 mb-4">
+                <span className="bg-gray-100 text-gray-900 rounded-full px-5 py-2 text-base font-medium">
+                  {job.type}
+                </span>
+                <span className="text-gray-800 font-semibold text-lg">{job.salary}</span>
+              </div>
+
+              {/* Description */}
+              <div className="text-gray-500 text-lg mb-4 max-w-3xl">
+                {isExpanded ? job.fullDescription : job.description}
+              </div>
+              <button
+                className="text-base text-blue-600 hover:text-blue-800 focus:outline-none focus:underline inline-flex items-center mb-4"
+                onClick={() => toggleJobExpansion(job.id)}
+                aria-expanded={isExpanded}
+                aria-controls={`job-description-${job.id}`}
+                aria-label={isExpanded ? `Show less details for ${job.title}` : `Show more details for ${job.title}`}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" aria-hidden="true" />
+                    Read Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" aria-hidden="true" />
+                    Read More
+                  </>
+                )}
+              </button>
+
+              {/* Skills */}
+              <div className="flex flex-wrap gap-3 mb-7">
+                {job.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="bg-gray-100 text-gray-700 px-4 py-1 rounded-full text-base font-medium"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-4">
+                <button
+                  className="bg-black text-white rounded-xl px-8 py-3 font-semibold text-base hover:bg-gray-900 transition"
+                  aria-label={`Apply for ${job.title} position`}
+                >
+                  Apply Now
+                </button>
+                <button
+                  className="bg-white border border-gray-300 rounded-xl px-8 py-3 text-gray-800 font-semibold text-base hover:bg-gray-100 transition"
+                  aria-label={`View details for ${job.title}`}
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          );
+        })}
         {/* Load More */}
-        <div className="flex justify-center mt-8">
-          <button 
-            className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-sm"
+        <div className="flex justify-center mt-12">
+          <button
+            className="px-8 py-3 bg-white text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-semibold text-base"
             aria-label="Load more job listings"
           >
             Load More Jobs
           </button>
         </div>
+
+        <button className="bg-blue-600 text-white rounded-full px-6 py-3 shadow-lg font-bold mt-8">Tailwind Test</button>
+
       </div>
     </div>
   );
