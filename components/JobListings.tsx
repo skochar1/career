@@ -113,15 +113,24 @@ export function JobListings({
     };
   }, []);
 
-  // Refetch jobs when filters, sorting, or search change
+  // Refetch jobs when mode, filters, sorting, or search change
   useEffect(() => {
-    if (isPersonalized && sessionId) {
-      // Refetch personalized jobs with new filters
-      fetchPersonalizedJobs(sessionId);
-    } else if (!isPersonalized) {
-      fetchDefaultJobs(1);
-    }
-  }, [externalFilters, externalSortBy, searchQuery, locationQuery, isPersonalized, sessionId]);
+    let isMounted = true;
+    
+    const loadJobs = async () => {
+      if (isPersonalized && sessionId) {
+        if (isMounted) await fetchPersonalizedJobs(sessionId);
+      } else if (!isPersonalized) {
+        if (isMounted) await fetchDefaultJobs(1);
+      }
+    };
+    
+    loadJobs();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isPersonalized, sessionId, externalFilters, externalSortBy, searchQuery, locationQuery]);
 
   const buildQueryParams = (page = 1) => {
     const params = new URLSearchParams();
@@ -176,7 +185,7 @@ export function JobListings({
   };
 
   const fetchDefaultJobs = async (page = 1) => {
-    setLoading(page === 1);
+    if (page === 1) setLoading(true);
     try {
       const queryString = buildQueryParams(page);
       const res = await fetch(`/api/jobs?${queryString}`);
@@ -211,7 +220,7 @@ export function JobListings({
         setHasMore(false);
       }
     } finally {
-      setLoading(false);
+      if (page === 1) setLoading(false);
     }
   };
 
@@ -285,14 +294,18 @@ export function JobListings({
         setCurrentPage(1);
       } else {
         // Fallback to default jobs if no recommendations
-        await fetchDefaultJobs();
-        setIsPersonalized(false);
+        setJobs([]);
+        setTotalJobs(0);
+        setHasMore(false);
+        setCurrentPage(1);
       }
     } catch (error) {
       console.error('Error fetching personalized jobs:', error);
-      // Fallback to default jobs
-      await fetchDefaultJobs();
-      setIsPersonalized(false);
+      // Set empty state instead of switching modes to avoid loops
+      setJobs([]);
+      setTotalJobs(0);
+      setHasMore(false);
+      setCurrentPage(1);
     } finally {
       setLoading(false);
     }

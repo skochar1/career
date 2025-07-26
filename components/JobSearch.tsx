@@ -261,9 +261,7 @@ export function JobSearch({ onSearch }: JobSearchProps) {
               if (!open) {
                 // When dialog is closed, reset upload state if no successful upload
                 if (!uploadComplete) {
-                  setUploadedFile(null);
-                  setIsUploading(false);
-                  setIsDragOver(false);
+                  resetUpload();
                 }
               }
             }}
@@ -332,7 +330,7 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                   <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
                     <button
                       className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium order-2 sm:order-1"
-                      onClick={resetUpload}
+                      onClick={() => resetUpload()}
                     >
                       Cancel
                     </button>
