@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ['class'], // Required for dark mode support
+  darkMode: 'class',
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
@@ -53,7 +53,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"), // Only if you're using animations
-  ],
-};
+  plugins: [],
+}
