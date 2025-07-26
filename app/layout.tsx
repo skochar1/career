@@ -9,11 +9,8 @@ import "../styles/global.css";
  * sensible defaults for background and text colour using CSS variables
  * defined in the global stylesheet.
  */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-foreground">
