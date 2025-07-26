@@ -8,28 +8,37 @@ import { ChatAssistant } from '../components/ChatAssistant';
  * components such as the job search form, filter sidebar, job listings,
  * and the floating chat assistant.
  */
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Top section with search and resume upload */}
-      <JobSearch />
-      
-      {/* Main content area with filters and job results */}
-      <div className="container mx-auto">
-        <div className="flex gap-6 px-4 py-6">
-          {/* Sidebar - Always visible for now */}
+      {/* Black header/hero area */}
+      <div className="w-full bg-[#0B0C13] text-white pb-10">
+        <div className="max-w-6xl mx-auto px-4 py-10">
+          <h1 className="text-3xl font-bold text-center mb-8" style={{ color: 'white' }}>
+            Find your next opportunity
+          </h1>
+
+          {/* Your search bar and resume uploader here */}
+          <JobSearch />
+        </div>
+      </div>
+
+      {/* Main content area, white bg */}
+      <div className="w-full bg-white text-black">
+        <div className="max-w-6xl mx-auto px-4 py-10 flex gap-8">
+          {/* Sidebar */}
           <div className="w-80 flex-shrink-0">
             <FilterSidebar />
           </div>
-          
-          {/* Main content area */}
+          {/* Job listings */}
           <div className="flex-1 min-w-0">
             <JobListings />
           </div>
         </div>
       </div>
-      
-      {/* Floating AI chat assistant */}
+
+      {/* Floating AI chat assistant (unchanged) */}
       <ChatAssistant />
     </div>
   );
