@@ -31,32 +31,46 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
   let extractedText: string;
 
   try {
+    console.log('Extracting text from file type:', file.mimetype);
+    
     if (file.mimetype === 'application/pdf') {
+      console.log('Processing PDF file...');
       const pdfData = await pdfParse(file.buffer);
       extractedText = pdfData.text;
+      console.log('PDF text extracted, length:', extractedText.length);
     } else if (file.mimetype === 'text/plain') {
+      console.log('Processing text file...');
       extractedText = file.buffer.toString('utf-8');
+      console.log('Text extracted, length:', extractedText.length);
     } else if (
       file.mimetype === 'application/msword' ||
       file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ) {
+      console.log('Processing DOC/DOCX file (treating as text for now)...');
       // For now, treat as text - you might want to add proper DOC/DOCX parsing
       extractedText = file.buffer.toString('utf-8');
+      console.log('DOC text extracted, length:', extractedText.length);
     } else {
-      throw new Error('Unsupported file type');
+      throw new Error(`Unsupported file type: ${file.mimetype}`);
     }
 
+    if (!extractedText || extractedText.trim().length === 0) {
+      throw new Error('No text could be extracted from the file');
+    }
+
+    console.log('Starting OpenAI parsing...');
     // Use OpenAI to parse and structure the resume data
     const parsedData = await parseWithOpenAI(extractedText);
+    console.log('OpenAI parsing completed successfully');
     
     return {
       ...parsedData,
       rawText: extractedText
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing resume:', error);
-    throw new Error('Failed to parse resume file');
+    throw new Error(`Failed to parse resume file: ${error.message}`);
   }
 }
 
@@ -97,6 +111,7 @@ Example response format:
 `;
 
   try {
+    console.log('Calling OpenAI API...');
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -113,13 +128,16 @@ Example response format:
       max_tokens: 2000
     });
 
+    console.log('OpenAI API response received');
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error('No response from OpenAI');
     }
 
+    console.log('Parsing JSON response from OpenAI...');
     // Parse the JSON response
     const parsedData = JSON.parse(content);
+    console.log('JSON parsed successfully');
     
     // Validate and sanitize the response
     return {

@@ -65,11 +65,18 @@ export function JobSearch() {
       setIsUploading(true);
       
       try {
+        // Generate or get session ID
+        let sessionId = localStorage.getItem('career-session-id');
+        if (!sessionId) {
+          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+          localStorage.setItem('career-session-id', sessionId);
+        }
+        
         const formData = new FormData();
         formData.append('resume', uploadedFile);
-        formData.append('session_id', Math.random().toString(36).substr(2, 9));
+        formData.append('sessionId', sessionId);
         
-        const response = await fetch('/api', {
+        const response = await fetch('/api/upload-resume', {
           method: 'POST',
           body: formData,
         });
@@ -78,6 +85,15 @@ export function JobSearch() {
           const result = await response.json();
           console.log('Resume processed:', result);
           setUploadComplete(true);
+          
+          // Store the session info and trigger job recommendations
+          localStorage.setItem('has-uploaded-resume', 'true');
+          
+          // Dispatch custom event to notify JobListings component
+          window.dispatchEvent(new CustomEvent('resumeUploaded', { 
+            detail: { sessionId, parsedData: result.parsedData } 
+          }));
+          
         } else {
           throw new Error('Failed to process resume');
         }

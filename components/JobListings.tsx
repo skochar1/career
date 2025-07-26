@@ -31,22 +31,83 @@ export function JobListings() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalJobs, setTotalJobs] = useState(0);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [isPersonalized, setIsPersonalized] = useState(false);
+  const [parsedResumeData, setParsedResumeData] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchJobs() {
-      setLoading(true);
+    // Check if user has uploaded resume on component mount
+    const hasResume = localStorage.getItem('has-uploaded-resume') === 'true';
+    const storedSessionId = localStorage.getItem('career-session-id');
+    
+    if (hasResume && storedSessionId) {
+      setSessionId(storedSessionId);
+      setIsPersonalized(true);
+      fetchPersonalizedJobs(storedSessionId);
+    } else {
+      fetchDefaultJobs();
+    }
+
+    // Listen for resume upload events
+    const handleResumeUpload = (event: CustomEvent) => {
+      const { sessionId: newSessionId, parsedData } = event.detail;
+      setSessionId(newSessionId);
+      setIsPersonalized(true);
+      setParsedResumeData(parsedData);
+      fetchPersonalizedJobs(newSessionId);
+    };
+
+    window.addEventListener('resumeUploaded', handleResumeUpload as EventListener);
+    
+    return () => {
+      window.removeEventListener('resumeUploaded', handleResumeUpload as EventListener);
+    };
+  }, []);
+
+  const fetchDefaultJobs = async () => {
+    setLoading(true);
+    try {
       const res = await fetch("/api/jobs?page=1&limit=5");
       const data = await res.json();
       setJobs(data.jobs || []);
       setTotalJobs(data.pagination?.total || 0);
       setHasMore(data.pagination?.hasNext || false);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
       setLoading(false);
     }
-    fetchJobs();
-  }, []);
+  };
+
+  const fetchPersonalizedJobs = async (sessionId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/recommendations?sessionId=${sessionId}&limit=20`);
+      const data = await res.json();
+      
+      if (data.success && data.recommendations) {
+        setJobs(data.recommendations);
+        setTotalJobs(data.count);
+        setHasMore(false); // Recommendations don't need pagination for now
+        setCurrentPage(1);
+      } else {
+        // Fallback to default jobs if no recommendations
+        await fetchDefaultJobs();
+        setIsPersonalized(false);
+      }
+    } catch (error) {
+      console.error('Error fetching personalized jobs:', error);
+      // Fallback to default jobs
+      await fetchDefaultJobs();
+      setIsPersonalized(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadMoreJobs = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || isPersonalized) return; // Don't load more for personalized
     
     setLoadingMore(true);
     const nextPage = currentPage + 1;
@@ -59,6 +120,15 @@ export function JobListings() {
       setHasMore(data.pagination?.hasNext || false);
     }
     setLoadingMore(false);
+  };
+
+  const resetToDefaultJobs = () => {
+    localStorage.removeItem('has-uploaded-resume');
+    localStorage.removeItem('career-session-id');
+    setIsPersonalized(false);
+    setSessionId('');
+    setParsedResumeData(null);
+    fetchDefaultJobs();
   };
 
   const toggleJobExpansion = (jobId: number) => {
@@ -92,8 +162,19 @@ export function JobListings() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-0 py-4">
         <div className="text-xl font-medium text-gray-500">
-          Showing {jobs.length} of {totalJobs} jobs
+          {isPersonalized 
+            ? `${jobs.length} personalized job recommendations` 
+            : `Showing ${jobs.length} of ${totalJobs} jobs`
+          }
         </div>
+        {isPersonalized && (
+          <button
+            onClick={resetToDefaultJobs}
+            className="text-sm text-gray-600 hover:text-gray-800 underline"
+          >
+            View all jobs
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
           <select 
@@ -114,6 +195,16 @@ export function JobListings() {
         {jobs.map((job) => {
           const isExpanded = expandedJobs.has(job.id);
           const isSaved = savedJobs.has(job.id);
+          const jobWithMatch = job as any; // Type assertion for match_score and matching_skills
+          const matchScore = jobWithMatch.match_score;
+          const matchingSkills = jobWithMatch.matching_skills || [];
+
+          const getMatchScoreColor = (score?: number) => {
+            if (!score) return '';
+            if (score >= 80) return 'text-green-600 bg-green-100';
+            if (score >= 60) return 'text-yellow-600 bg-yellow-100';
+            return 'text-red-600 bg-red-100';
+          };
 
           return (
             <div
@@ -141,6 +232,11 @@ export function JobListings() {
                       >
                         {job.title}
                       </h3>
+                      {isPersonalized && matchScore && (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMatchScoreColor(matchScore)}`}>
+                          {matchScore}% Match
+                        </span>
+                      )}
                       {job.remote_eligible === 1 && (
                         <span className="bg-gray-100 text-gray-800 rounded-full px-2 py-0.5 text-xs font-medium">
                           Remote
@@ -224,15 +320,42 @@ export function JobListings() {
               </button>
 
               {/* Skills */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {Array.isArray(job.required_skills) && job.required_skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium"
-                  >
-                    {skill}
-                  </span>
-                ))}
+              <div className="mb-3">
+                {isPersonalized && matchingSkills.length > 0 && (
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                      ⭐ Your Matching Skills ({matchingSkills.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {matchingSkills.map((skill: string, index: number) => (
+                        <span
+                          key={index}
+                          className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap gap-2">
+                  {Array.isArray(job.required_skills) && job.required_skills.map((skill) => {
+                    const isMatching = isPersonalized && matchingSkills.includes(skill);
+                    return (
+                      <span
+                        key={skill}
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          isMatching 
+                            ? 'bg-green-100 text-green-700 border border-green-300' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {skill}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Action buttons */}
@@ -255,8 +378,8 @@ export function JobListings() {
         })}
       </div>
       
-      {/* Load More Button */}
-      {hasMore && (
+      {/* Load More Button - only for non-personalized listings */}
+      {!isPersonalized && hasMore && (
         <div className="flex justify-center mt-6">
           <button
             onClick={loadMoreJobs}
@@ -268,9 +391,23 @@ export function JobListings() {
         </div>
       )}
       
-      {!hasMore && jobs.length > 0 && (
+      {!isPersonalized && !hasMore && jobs.length > 0 && (
         <div className="text-center mt-6 text-gray-500">
           No more jobs to load
+        </div>
+      )}
+      
+      {isPersonalized && jobs.length > 0 && (
+        <div className="text-center mt-6">
+          <p className="text-gray-500 mb-4">
+            These are your top job matches based on your resume
+          </p>
+          <button
+            onClick={resetToDefaultJobs}
+            className="text-blue-600 hover:text-blue-800 font-medium underline"
+          >
+            Browse all available jobs
+          </button>
         </div>
       )}
     </div>

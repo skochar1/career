@@ -8,9 +8,9 @@ export function Header() {
           <div className="flex items-center space-x-8">
             <h1 className="text-2xl font-bold text-gray-900">JobSearch</h1>
             <nav className="hidden md:flex space-x-6">
-              <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Jobs</a>
+              <a href="/" className="text-gray-600 hover:text-gray-900 font-medium">Jobs</a>
+              <a href="/recommendations" className="text-gray-600 hover:text-gray-900 font-medium">AI Recommendations</a>
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Companies</a>
-              <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Salary</a>
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Resources</a>
             </nav>
           </div>

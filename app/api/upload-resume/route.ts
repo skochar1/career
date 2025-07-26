@@ -2,35 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '../../../lib/database';
 import { parseResume } from '../../../lib/resume-parser';
 import { calculateJobMatches } from '../../../lib/job-matcher';
-import multer from 'multer';
-import { promisify } from 'util';
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'application/pdf',
-      'text/plain',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Please upload PDF, TXT, DOC, or DOCX files.'));
-    }
-  }
-});
-
-const uploadMiddleware = promisify(upload.single('resume'));
 
 export async function POST(request: NextRequest) {
   try {
-    // Create a mock req/res for multer
     const formData = await request.formData();
     const file = formData.get('resume') as File;
     const sessionId = formData.get('sessionId') as string;
@@ -49,15 +23,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Please upload PDF, TXT, DOC, or DOCX files.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File size must be less than 10MB.' },
+        { status: 400 }
+      );
+    }
+
     // Convert File to Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Parse the resume using OpenAI
+    console.log('Starting resume parsing for file:', file.name, 'Size:', file.size, 'Type:', file.type);
     const resumeData = await parseResume({
       buffer,
       filename: file.name,
       mimetype: file.type
     });
+    console.log('Resume parsing completed successfully');
 
     // Store candidate data in database
     const db = getDatabase();
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
         sessionId
       );
       
-      candidateId = existingCandidate.id;
+      candidateId = (existingCandidate as any).id;
     } else {
       // Create new candidate
       const insertStmt = db.prepare(`
@@ -104,11 +103,13 @@ export async function POST(request: NextRequest) {
         JSON.stringify(resumeData.preferredLocations || [])
       );
       
-      candidateId = result.lastInsertRowid as number;
+      candidateId = Number(result.lastInsertRowid);
     }
 
     // Calculate job matches
+    console.log('Starting job matching calculation');
     await calculateJobMatches(candidateId, resumeData);
+    console.log('Job matching calculation completed');
 
     return NextResponse.json({
       success: true,
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error processing resume:', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
       { error: 'Failed to process resume', details: error.message },
       { status: 500 }
