@@ -110,6 +110,12 @@ export function JobListings({
         if (currentFilters.workType.includes('Remote')) {
           params.set('remote', 'true');
         }
+        if (currentFilters.workType.includes('On-site')) {
+          params.set('onsite', 'true');
+        }
+        if (currentFilters.workType.includes('Hybrid')) {
+          params.set('hybrid', 'true');
+        }
       }
       if (currentFilters.jobType?.length > 0) {
         params.set('employment_type', currentFilters.jobType.join(','));
@@ -366,9 +372,15 @@ export function JobListings({
                 <span className="bg-gray-100 text-gray-900 rounded px-2 py-1 text-sm font-medium">
                   {job.employment_type}
                 </span>
-                <span className="text-gray-800 font-semibold text-sm">
-                  ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
-                </span>
+                {job.salary_min && job.salary_max ? (
+                  <span className="text-gray-800 font-semibold text-sm">
+                    ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-gray-500 text-sm">
+                    Salary not disclosed
+                  </span>
+                )}
               </div>
 
               {/* Description */}

@@ -9,6 +9,7 @@ interface SearchDocument {
   required_skills: string[];
   preferred_skills: string[];
   employment_type: string;
+  remote_eligible: number;
   searchableText: string;
 }
 
@@ -60,6 +61,7 @@ class JobSearchEngine {
       required_skills: job.required_skills || [],
       preferred_skills: job.preferred_skills || [],
       employment_type: job.employment_type,
+      remote_eligible: job.remote_eligible || 0,
       searchableText
     };
 
@@ -99,6 +101,8 @@ class JobSearchEngine {
       seniority_level?: string;
       department?: string;
       remote_eligible?: boolean;
+      onsite?: boolean;
+      hybrid?: boolean;
     };
   } = {}): { results: SearchDocument[]; total: number } {
     if (!query.trim()) {
@@ -160,6 +164,29 @@ class JobSearchEngine {
         }
         if (options.filters!.department && (!doc.department || !doc.department.toLowerCase().includes(options.filters!.department.toLowerCase()))) {
           return false;
+        }
+
+        // Handle work type filters - if any are selected, job must match at least one
+        const hasWorkTypeFilters = options.filters!.remote_eligible || options.filters!.onsite || options.filters!.hybrid;
+        if (hasWorkTypeFilters) {
+          let matchesWorkType = false;
+          
+          if (options.filters!.remote_eligible && doc.remote_eligible === 1) {
+            matchesWorkType = true;
+          }
+          if (options.filters!.onsite && doc.remote_eligible === 0) {
+            matchesWorkType = true;
+          }
+          if (options.filters!.hybrid) {
+            const text = (doc.title + ' ' + doc.description).toLowerCase();
+            if (text.includes('hybrid')) {
+              matchesWorkType = true;
+            }
+          }
+          
+          if (!matchesWorkType) {
+            return false;
+          }
         }
 
         return true;
@@ -226,6 +253,8 @@ export function searchJobs(
       seniority_level?: string;
       department?: string;
       remote_eligible?: boolean;
+      onsite?: boolean;
+      hybrid?: boolean;
     };
   } = {}
 ) {

@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     const seniority = searchParams.get('seniority_level');
     const department = searchParams.get('department');
     const remote = searchParams.get('remote_eligible') || searchParams.get('remote');
+    const onsite = searchParams.get('onsite');
+    const hybrid = searchParams.get('hybrid');
     const employmentType = searchParams.get('employment_type');
     const sort = searchParams.get('sort');
     const search = searchParams.get('search');
@@ -28,6 +30,8 @@ export async function GET(request: NextRequest) {
       seniority,
       department,
       remote,
+      onsite,
+      hybrid,
       employmentType,
       sort,
       search,
@@ -71,7 +75,9 @@ export async function GET(request: NextRequest) {
           seniority_level: seniority || undefined,
           department: department || undefined,
           employment_type: employmentType || undefined,
-          remote_eligible: remote === 'true' ? true : undefined
+          remote_eligible: remote === 'true' ? true : undefined,
+          onsite: onsite === 'true' ? true : undefined,
+          hybrid: hybrid === 'true' ? true : undefined
         }
       }, sessionId, db);
     } else {
@@ -80,6 +86,8 @@ export async function GET(request: NextRequest) {
         seniority,
         department,
         remote,
+        onsite,
+        hybrid,
         employmentType,
         sort,
         sessionId,
@@ -211,7 +219,7 @@ function applySorting(jobs: any[], sort?: string): any[] {
 }
 
 async function handleRegularQuery(params: any, db: any) {
-  const { location, seniority, department, remote, employmentType, sort, sessionId, limit, offset } = params;
+  const { location, seniority, department, remote, onsite, hybrid, employmentType, sort, sessionId, limit, offset } = params;
   
   let whereConditions = ['is_active = 1'];
   let queryParams: any[] = [];
@@ -242,8 +250,22 @@ async function handleRegularQuery(params: any, db: any) {
     types.forEach((type: string) => queryParams.push(type));
   }
 
+  // Handle work type filters
+  const workTypeFilters = [];
   if (remote === 'true') {
-    whereConditions.push('remote_eligible = 1');
+    workTypeFilters.push('remote_eligible = 1');
+  }
+  if (onsite === 'true') {
+    workTypeFilters.push('remote_eligible = 0');
+  }
+  if (hybrid === 'true') {
+    // For hybrid, we might need to check for specific patterns or add a hybrid field
+    // For now, assuming hybrid jobs might have "hybrid" in description or title
+    workTypeFilters.push('(LOWER(title) LIKE "%hybrid%" OR LOWER(description) LIKE "%hybrid%")');
+  }
+  
+  if (workTypeFilters.length > 0) {
+    whereConditions.push(`(${workTypeFilters.join(' OR ')})`);
   }
 
   const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
