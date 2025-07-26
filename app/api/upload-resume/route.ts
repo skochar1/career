@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '../../../lib/database';
 import { parseResume } from '../../../lib/resume-parser';
 import { calculateJobMatches } from '../../../lib/job-matcher';
+
+// Use PostgreSQL in production, SQLite in development
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+
+let dbModule: any;
+if (isProduction) {
+  dbModule = require('../../../lib/database-postgres');
+} else {
+  dbModule = require('../../../lib/database');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,51 +68,91 @@ export async function POST(request: NextRequest) {
     console.log('Resume parsing completed successfully');
 
     // Store candidate data in database
-    const db = getDatabase();
-    
-    // Check if candidate already exists
-    const existingCandidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
-    
     let candidateId: number;
     
-    if (existingCandidate) {
-      // Update existing candidate
-      const updateStmt = db.prepare(`
-        UPDATE candidates 
-        SET resume_filename = ?, resume_content = ?, parsed_skills = ?, 
-            experience_level = ?, preferred_locations = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE session_id = ?
-      `);
+    if (isProduction) {
+      // PostgreSQL operations
+      await dbModule.initializeDatabase();
       
-      updateStmt.run(
-        file.name,
-        resumeData.rawText,
-        JSON.stringify(resumeData.skills),
-        resumeData.experienceLevel,
-        JSON.stringify(resumeData.preferredLocations || []),
-        sessionId
-      );
+      // Check if candidate already exists
+      const { rows: existingCandidates } = await dbModule.sql`
+        SELECT * FROM candidates WHERE session_id = ${sessionId}
+      `;
+      const existingCandidate = existingCandidates[0];
       
-      candidateId = (existingCandidate as any).id;
+      if (existingCandidate) {
+        // Update existing candidate
+        await dbModule.sql`
+          UPDATE candidates 
+          SET resume_filename = ${file.name}, 
+              resume_content = ${resumeData.rawText}, 
+              parsed_skills = ${JSON.stringify(resumeData.skills)}, 
+              experience_level = ${resumeData.experienceLevel}, 
+              preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])}, 
+              updated_at = CURRENT_TIMESTAMP
+          WHERE session_id = ${sessionId}
+        `;
+        candidateId = existingCandidate.id;
+      } else {
+        // Create new candidate
+        const { rows: newCandidate } = await dbModule.sql`
+          INSERT INTO candidates (
+            session_id, resume_filename, resume_content, parsed_skills, 
+            experience_level, preferred_locations
+          ) VALUES (
+            ${sessionId}, ${file.name}, ${resumeData.rawText}, 
+            ${JSON.stringify(resumeData.skills)}, ${resumeData.experienceLevel}, 
+            ${JSON.stringify(resumeData.preferredLocations || [])}
+          ) RETURNING id
+        `;
+        candidateId = newCandidate[0].id;
+      }
     } else {
-      // Create new candidate
-      const insertStmt = db.prepare(`
-        INSERT INTO candidates (
-          session_id, resume_filename, resume_content, parsed_skills, 
-          experience_level, preferred_locations
-        ) VALUES (?, ?, ?, ?, ?, ?)
-      `);
+      // SQLite operations
+      const db = dbModule.getDatabase();
       
-      const result = insertStmt.run(
-        sessionId,
-        file.name,
-        resumeData.rawText,
-        JSON.stringify(resumeData.skills),
-        resumeData.experienceLevel,
-        JSON.stringify(resumeData.preferredLocations || [])
-      );
+      // Check if candidate already exists
+      const existingCandidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
       
-      candidateId = Number(result.lastInsertRowid);
+      if (existingCandidate) {
+        // Update existing candidate
+        const updateStmt = db.prepare(`
+          UPDATE candidates 
+          SET resume_filename = ?, resume_content = ?, parsed_skills = ?, 
+              experience_level = ?, preferred_locations = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE session_id = ?
+        `);
+        
+        updateStmt.run(
+          file.name,
+          resumeData.rawText,
+          JSON.stringify(resumeData.skills),
+          resumeData.experienceLevel,
+          JSON.stringify(resumeData.preferredLocations || []),
+          sessionId
+        );
+        
+        candidateId = (existingCandidate as any).id;
+      } else {
+        // Create new candidate
+        const insertStmt = db.prepare(`
+          INSERT INTO candidates (
+            session_id, resume_filename, resume_content, parsed_skills, 
+            experience_level, preferred_locations
+          ) VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        
+        const result = insertStmt.run(
+          sessionId,
+          file.name,
+          resumeData.rawText,
+          JSON.stringify(resumeData.skills),
+          resumeData.experienceLevel,
+          JSON.stringify(resumeData.preferredLocations || [])
+        );
+        
+        candidateId = Number(result.lastInsertRowid);
+      }
     }
 
     // Calculate job matches

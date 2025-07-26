@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -31,49 +33,147 @@ export interface ParsedResumeData {
 }
 
 export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
-  // Extract text from file based on type
-  let extractedText: string;
-
   try {
-    console.log('Extracting text from file type:', file.mimetype);
+    console.log('Processing file type:', file.mimetype, 'Size:', file.size);
     
-    if (file.mimetype === 'application/pdf') {
-      console.log('Processing PDF file...');
-      // For now, return a simple error for PDF files - we'll implement this later
-      throw new Error('PDF parsing temporarily disabled. Please upload a text file for testing.');
-    } else if (file.mimetype === 'text/plain') {
-      console.log('Processing text file...');
-      extractedText = file.buffer.toString('utf-8');
-      console.log('Text extracted, length:', extractedText.length);
-    } else if (
-      file.mimetype === 'application/msword' ||
-      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ) {
-      console.log('Processing DOC/DOCX file (treating as text for now)...');
-      // For now, treat as text - you might want to add proper DOC/DOCX parsing
-      extractedText = file.buffer.toString('utf-8');
-      console.log('DOC text extracted, length:', extractedText.length);
-    } else {
-      throw new Error(`Unsupported file type: ${file.mimetype}`);
-    }
-
-    if (!extractedText || extractedText.trim().length === 0) {
-      throw new Error('No text could be extracted from the file');
-    }
-
-    console.log('Starting OpenAI parsing...');
-    // Use OpenAI to parse and structure the resume data
-    const parsedData = await parseWithOpenAI(extractedText);
-    console.log('OpenAI parsing completed successfully');
+    // Use OpenAI to directly process the file content
+    console.log('Starting OpenAI file processing...');
+    const parsedData = await parseWithOpenAIFile(file);
+    console.log('OpenAI file processing completed successfully');
     
-    return {
-      ...parsedData,
-      rawText: extractedText
-    };
+    return parsedData;
 
   } catch (error: any) {
     console.error('Error parsing resume:', error);
     throw new Error(`Failed to parse resume file: ${error.message}`);
+  }
+}
+
+async function parseWithOpenAIFile(file: ResumeFile): Promise<ParsedResumeData> {
+  try {
+    // Convert file content based on type
+    let extractedText: string = '';
+    
+    if (file.mimetype === 'text/plain') {
+      console.log('Processing text file...');
+      extractedText = file.buffer.toString('utf-8');
+    } else if (
+      file.mimetype === 'application/pdf' ||
+      file.mimetype === 'application/msword' ||
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      console.log('Processing binary file...');
+      
+      // For PDF and DOCX files, we'll attempt to extract text using a simple approach
+      // and then send the extracted text to OpenAI for parsing
+      let rawText = '';
+      
+      if (file.mimetype === 'application/pdf') {
+        // Use pdf-parse library for proper PDF text extraction
+        try {
+          console.log('Extracting text from PDF using pdf-parse...');
+          const pdfData = await pdfParse(file.buffer);
+          rawText = pdfData.text;
+          console.log('PDF text extracted successfully, length:', rawText.length);
+        } catch (error) {
+          console.log('PDF parsing failed:', error);
+          // Fallback to basic extraction
+          try {
+            rawText = file.buffer.toString('utf-8');
+            rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
+            rawText = rawText.replace(/\s+/g, ' ').trim();
+          } catch {
+            rawText = 'PDF content needs manual processing';
+          }
+        }
+      } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Use mammoth library for proper DOCX text extraction
+        try {
+          console.log('Extracting text from DOCX using mammoth...');
+          const result = await mammoth.extractRawText({ buffer: file.buffer });
+          rawText = result.value;
+          console.log('DOCX text extracted successfully, length:', rawText.length);
+        } catch (error) {
+          console.log('DOCX parsing failed:', error);
+          // Fallback to basic extraction
+          try {
+            rawText = file.buffer.toString('utf-8');
+            rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
+            rawText = rawText.replace(/\s+/g, ' ').trim();
+          } catch {
+            rawText = 'DOCX content needs manual processing';
+          }
+        }
+      } else {
+        // For older DOC files, try basic text extraction
+        try {
+          rawText = file.buffer.toString('utf-8');
+          rawText = rawText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
+          rawText = rawText.replace(/\s+/g, ' ').trim();
+        } catch (error) {
+          console.log('DOC text extraction failed');
+          rawText = 'DOC content needs manual processing';
+        }
+      }
+      
+      // If we have reasonable text content, parse it with OpenAI
+      if (rawText.length > 50) {
+        console.log('Extracted text length:', rawText.length);
+        const parsedData = await parseWithOpenAI(rawText);
+        return {
+          ...parsedData,
+          rawText: rawText
+        };
+      } else {
+        // If text extraction failed, return a basic structure
+        console.log('Text extraction minimal, returning basic structure');
+        return {
+          skills: [],
+          experienceLevel: 'mid' as const,
+          preferredLocations: [],
+          summary: `${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} file uploaded successfully. For best results, please upload a text file or ensure your ${file.mimetype === 'application/pdf' ? 'PDF' : 'DOCX'} contains selectable text.`,
+          education: [],
+          workExperience: [],
+          rawText: file.filename || 'Resume file uploaded'
+        };
+      }
+      
+    } else {
+      throw new Error(`Unsupported file type: ${file.mimetype}`);
+    }
+
+    // For text files, use the existing text parsing method
+    if (extractedText) {
+      console.log('Text extracted, length:', extractedText.length);
+      const parsedData = await parseWithOpenAI(extractedText);
+      return {
+        ...parsedData,
+        rawText: extractedText
+      };
+    }
+    
+    throw new Error('No content could be extracted from the file');
+
+  } catch (error: any) {
+    console.error('Error in parseWithOpenAIFile:', error);
+    
+    // Fallback for any file type - try to extract basic text
+    let fallbackText = '';
+    try {
+      fallbackText = file.buffer.toString('utf-8');
+    } catch {
+      fallbackText = 'Resume content could not be extracted';
+    }
+    
+    return {
+      skills: [],
+      experienceLevel: 'mid',
+      preferredLocations: [],
+      summary: 'Resume uploaded but could not be fully processed. Please try a different format.',
+      education: [],
+      workExperience: [],
+      rawText: fallbackText
+    };
   }
 }
 

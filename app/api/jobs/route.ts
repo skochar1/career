@@ -531,7 +531,7 @@ async function handleRegularQueryPostgres(params: any) {
     workTypeFilters.push('remote_eligible = false');
   }
   if (hybrid === 'true') {
-    workTypeFilters.push('(LOWER(title) LIKE \'%hybrid%\' OR LOWER(description) LIKE \'%hybrid%\')');
+    workTypeFilters.push("(LOWER(title) LIKE '%hybrid%' OR LOWER(description) LIKE '%hybrid%')");
   }
   
   if (workTypeFilters.length > 0) {

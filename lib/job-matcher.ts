@@ -1,4 +1,3 @@
-import { getDatabase, Job } from './database';
 import { ParsedResumeData } from './resume-parser';
 import OpenAI from 'openai';
 
@@ -6,35 +5,68 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Use PostgreSQL in production, SQLite in development
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+
+let dbModule: any;
+if (isProduction) {
+  dbModule = require('./database-postgres');
+} else {
+  dbModule = require('./database');
+}
+
 export async function calculateJobMatches(candidateId: number, resumeData: ParsedResumeData) {
-  const db = getDatabase();
-  
-  // Get all active jobs
-  const jobs = db.prepare('SELECT * FROM jobs WHERE is_active = 1').all() as Job[];
-  
-  // Clear existing matches for this candidate
-  db.prepare('DELETE FROM job_matches WHERE candidate_id = ?').run(candidateId);
-  
-  // Calculate matches for each job
-  const insertMatch = db.prepare(`
-    INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills)
-    VALUES (?, ?, ?, ?)
-  `);
-  
-  for (const job of jobs) {
-    const matchScore = await calculateSingleJobMatch(resumeData, job);
-    const matchingSkills = findMatchingSkills(resumeData.skills, JSON.parse(job.required_skills || '[]'));
+  if (isProduction) {
+    // PostgreSQL operations
+    await dbModule.initializeDatabase();
     
-    insertMatch.run(
-      candidateId,
-      job.id,
-      matchScore,
-      JSON.stringify(matchingSkills)
-    );
+    // Get all active jobs
+    const { rows: jobs } = await dbModule.sql`SELECT * FROM jobs WHERE is_active = true`;
+    
+    // Clear existing matches for this candidate
+    await dbModule.sql`DELETE FROM job_matches WHERE candidate_id = ${candidateId}`;
+    
+    // Calculate matches for each job
+    for (const job of jobs) {
+      const matchScore = await calculateSingleJobMatch(resumeData, job);
+      const matchingSkills = findMatchingSkills(resumeData.skills, JSON.parse(job.required_skills || '[]'));
+      
+      await dbModule.sql`
+        INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills)
+        VALUES (${candidateId}, ${job.id}, ${matchScore}, ${JSON.stringify(matchingSkills)})
+      `;
+    }
+  } else {
+    // SQLite operations
+    const db = dbModule.getDatabase();
+    
+    // Get all active jobs
+    const jobs = db.prepare('SELECT * FROM jobs WHERE is_active = 1').all() as any[];
+    
+    // Clear existing matches for this candidate
+    db.prepare('DELETE FROM job_matches WHERE candidate_id = ?').run(candidateId);
+    
+    // Calculate matches for each job
+    const insertMatch = db.prepare(`
+      INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills)
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    for (const job of jobs) {
+      const matchScore = await calculateSingleJobMatch(resumeData, job);
+      const matchingSkills = findMatchingSkills(resumeData.skills, JSON.parse(job.required_skills || '[]'));
+      
+      insertMatch.run(
+        candidateId,
+        job.id,
+        matchScore,
+        JSON.stringify(matchingSkills)
+      );
+    }
   }
 }
 
-async function calculateSingleJobMatch(resumeData: ParsedResumeData, job: Job): Promise<number> {
+async function calculateSingleJobMatch(resumeData: ParsedResumeData, job: any): Promise<number> {
   try {
     const prompt = `
 You are a job matching expert. Please calculate a match score between a candidate and a job posting.
