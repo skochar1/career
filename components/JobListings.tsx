@@ -52,17 +52,9 @@ export function JobListings({
   const [filters, setFilters] = useState<any>(null);
 
   useEffect(() => {
-    // Check if user has uploaded resume on component mount
-    const hasResume = localStorage.getItem('has-uploaded-resume') === 'true';
-    const storedSessionId = localStorage.getItem('career-session-id');
-    
-    if (hasResume && storedSessionId) {
-      setSessionId(storedSessionId);
-      setIsPersonalized(true);
-      fetchPersonalizedJobs(storedSessionId);
-    } else {
-      fetchDefaultJobs();
-    }
+    // Always start with default jobs on page load
+    // Only switch to personalized when explicitly triggered by resume upload
+    fetchDefaultJobs();
 
     // Listen for resume upload events
     const handleResumeUpload = (event: CustomEvent) => {
@@ -73,10 +65,43 @@ export function JobListings({
       fetchPersonalizedJobs(newSessionId);
     };
 
+    // Listen for UI refresh events to reset state
+    const handleUIRefresh = () => {
+      // Reset expanded jobs and other UI state
+      setExpandedJobs(new Set());
+      setSavedJobs(new Set());
+      
+      // Check current state and refresh appropriately
+      const hasResume = localStorage.getItem('has-uploaded-resume') === 'true';
+      const storedSessionId = localStorage.getItem('career-session-id');
+      
+      if (hasResume && storedSessionId) {
+        setSessionId(storedSessionId);
+        setIsPersonalized(true);
+        fetchPersonalizedJobs(storedSessionId);
+      } else {
+        setIsPersonalized(false);
+        setSessionId('');
+        setParsedResumeData(null);
+        fetchDefaultJobs();
+      }
+    };
+
+    // Listen for page visibility changes to refresh UI when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleUIRefresh();
+      }
+    };
+
     window.addEventListener('resumeUploaded', handleResumeUpload as EventListener);
+    window.addEventListener('uiRefresh', handleUIRefresh as EventListener);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       window.removeEventListener('resumeUploaded', handleResumeUpload as EventListener);
+      window.removeEventListener('uiRefresh', handleUIRefresh as EventListener);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -203,7 +228,12 @@ export function JobListings({
     setIsPersonalized(false);
     setSessionId('');
     setParsedResumeData(null);
+    setExpandedJobs(new Set());
+    setSavedJobs(new Set());
     fetchDefaultJobs();
+    
+    // Dispatch UI refresh event to notify other components
+    window.dispatchEvent(new CustomEvent('uiRefresh'));
   };
 
   const toggleJobExpansion = (jobId: number) => {

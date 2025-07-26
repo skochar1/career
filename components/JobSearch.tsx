@@ -9,7 +9,7 @@ import {
   DialogTrigger
 } from "./ui/dialog";
 import { Search, MapPin, Upload, FileText, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface JobSearchProps {
   onSearch?: (query: string, location: string) => void;
@@ -23,6 +23,15 @@ export function JobSearch({ onSearch }: JobSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Clear all state on component mount to ensure fresh start
+  useEffect(() => {
+    setUploadedFile(null);
+    setUploadComplete(false);
+    setIsUploading(false);
+    setIsResumeDialogOpen(false);
+    setIsDragOver(false);
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -134,6 +143,10 @@ export function JobSearch({ onSearch }: JobSearchProps) {
     setUploadComplete(false);
     setIsUploading(false);
     setIsResumeDialogOpen(false);
+    setIsDragOver(false);
+    
+    // Dispatch event to notify other components to refresh
+    window.dispatchEvent(new CustomEvent('uiRefresh'));
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -192,7 +205,20 @@ export function JobSearch({ onSearch }: JobSearchProps) {
           <p className="mb-3 text-sm" style={{ color: "white", opacity: 1 }}>
             Or get personalized job recommendations
           </p>
-          <Dialog open={isResumeDialogOpen} onOpenChange={setIsResumeDialogOpen}>
+          <Dialog 
+            open={isResumeDialogOpen} 
+            onOpenChange={(open) => {
+              setIsResumeDialogOpen(open);
+              if (!open) {
+                // When dialog is closed, reset upload state if no successful upload
+                if (!uploadComplete) {
+                  setUploadedFile(null);
+                  setIsUploading(false);
+                  setIsDragOver(false);
+                }
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <button className="inline-flex items-center px-6 py-2.5 bg-gray-800 text-white border border-gray-700 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white font-medium text-sm">
                 <Upload className="h-4 w-4 mr-2" />
@@ -282,13 +308,27 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                   <div className="space-y-2">
                     <button
                       className="w-full px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
-                      onClick={resetUpload}
+                      onClick={() => {
+                        resetUpload();
+                        // Small delay to ensure dialog closes before triggering refresh
+                        setTimeout(() => {
+                          window.dispatchEvent(new CustomEvent('uiRefresh'));
+                        }, 100);
+                      }}
                     >
                       View Curated Jobs
                     </button>
                     <button
                       className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
-                      onClick={resetUpload}
+                      onClick={() => {
+                        // Clear resume data and reset to allow new upload
+                        localStorage.removeItem('has-uploaded-resume');
+                        localStorage.removeItem('career-session-id');
+                        resetUpload();
+                        setTimeout(() => {
+                          window.dispatchEvent(new CustomEvent('uiRefresh'));
+                        }, 100);
+                      }}
                     >
                       Upload Another Resume
                     </button>
