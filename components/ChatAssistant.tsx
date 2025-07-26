@@ -76,6 +76,16 @@ export function ChatAssistant() {
           })),
         }),
       });
+      
+      if (!apiResponse.ok) {
+        throw new Error(`HTTP error! status: ${apiResponse.status}`);
+      }
+      
+      const contentType = apiResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
       const data = await apiResponse.json();
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

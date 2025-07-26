@@ -166,6 +166,16 @@ export function JobListings({
     try {
       const queryString = buildQueryParams(page);
       const res = await fetch(`/api/jobs?${queryString}`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
       const data = await res.json();
       
       if (page === 1) {
@@ -180,6 +190,12 @@ export function JobListings({
       setHasMore(data.pagination?.hasNext || false);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      // Set empty state on error
+      if (page === 1) {
+        setJobs([]);
+        setTotalJobs(0);
+        setHasMore(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -236,6 +252,16 @@ export function JobListings({
     try {
       const queryString = buildPersonalizedQueryParams(sessionId);
       const res = await fetch(`/api/recommendations?${queryString}`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
       const data = await res.json();
       
       if (data.success && data.recommendations) {

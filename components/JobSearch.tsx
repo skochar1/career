@@ -95,6 +95,11 @@ export function JobSearch({ onSearch }: JobSearchProps) {
         });
         
         if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+          }
+          
           const result = await response.json();
           console.log('Resume processed:', result);
           setUploadComplete(true);
@@ -114,9 +119,16 @@ export function JobSearch({ onSearch }: JobSearchProps) {
             const responseText = await response.text();
             console.error('Raw server response:', responseText);
             
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.error || errorData.details || errorMessage;
-            console.error('Parsed server error:', errorData);
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errorData = JSON.parse(responseText);
+              errorMessage = errorData.error || errorData.details || errorMessage;
+              console.error('Parsed server error:', errorData);
+            } else {
+              console.error('Server returned non-JSON response:', responseText.substring(0, 200));
+              errorMessage = `Server error (${response.status})`;
+            }
           } catch (e) {
             console.error('Failed to parse error response:', e);
             // If JSON parsing fails, try to get some info from the response
