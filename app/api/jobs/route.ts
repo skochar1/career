@@ -373,7 +373,7 @@ async function handleRegularQuery(params: any, db: any) {
   const total = totalResult.total;
 
   const jobsQuery = `${baseQuery} LIMIT ? OFFSET ?`;
-  const jobs = db.prepare(jobsQuery).all(...queryParams, limit, offset) as Job[];
+  const jobs = db.prepare(jobsQuery).all(...queryParams, limit, offset) as any[];
 
   const processedJobs = jobs.map(job => ({
     ...job,
