@@ -22,8 +22,6 @@ export function FilterSidebar() {
     );
   };
 
-  const activeFilters = ["Remote", "Tech", "$50K+"];
-
   return (
     <div className="w-full bg-card border border-border rounded-lg h-fit overflow-y-auto" role="complementary" aria-label="Job search filters">
       <div className="p-4 border-b border-border">
@@ -38,33 +36,6 @@ export function FilterSidebar() {
             Clear All
           </Button>
         </div>
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3" role="group" aria-label="Active filters">
-            {activeFilters.map((filter) => (
-              <Badge 
-                key={filter} 
-                variant="secondary" 
-                className="gap-1"
-                role="button"
-                tabIndex={0}
-                aria-label={`Remove ${filter} filter`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    // Remove filter logic
-                  }
-                }}
-              >
-                {filter} 
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => {/* Remove filter */}}
-                  aria-hidden="true"
-                />
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="p-4 space-y-6" role="region" aria-labelledby="filters-heading">

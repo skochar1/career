@@ -56,31 +56,6 @@ export function JobSearch() {
 
   return (
     <div className="bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm" role="banner">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <h1 className="text-primary">
-                <a href="/" className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded">
-                  JobSearch
-                </a>
-              </h1>
-              <nav className="hidden md:flex gap-6" role="navigation" aria-label="Main navigation">
-                <a href="#" className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded">Jobs</a>
-                <a href="#" className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded">Companies</a>
-                <a href="#" className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded">Salary</a>
-                <a href="#" className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded">Resources</a>
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline">Sign In</Button>
-              <Button>Post a Job</Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Search Section */}
       <div className="bg-primary text-primary-foreground py-8" role="search" aria-label="Job search">
         <div className="container mx-auto px-4">

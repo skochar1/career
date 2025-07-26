@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-import { MapPin, Clock, DollarSign, Building, Bookmark, ExternalLink, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { MapPin, Clock, DollarSign, Building, Bookmark, ExternalLink, Filter, ChevronDown, ChevronUp, X } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useState } from "react";
 
@@ -89,6 +89,7 @@ const mockJobs = [
 export function JobListings() {
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
+  const [activeFilters, setActiveFilters] = useState(["Remote", "Tech", "$50K+"]);
 
   const toggleJobExpansion = (jobId: number) => {
     setExpandedJobs(prev => {
@@ -112,6 +113,10 @@ export function JobListings() {
       }
       return newSet;
     });
+  };
+
+  const removeFilter = (filterToRemove: string) => {
+    setActiveFilters(prev => prev.filter(filter => filter !== filterToRemove));
   };
 
   return (
@@ -146,6 +151,37 @@ export function JobListings() {
           </div>
         </div>
       </div>
+
+      {/* Active Filters */}
+      {activeFilters.length > 0 && (
+        <div className="px-6 py-4 border-b border-border bg-background">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Active filters">
+            {activeFilters.map((filter) => (
+              <Badge 
+                key={filter} 
+                variant="secondary" 
+                className="gap-1"
+                role="button"
+                tabIndex={0}
+                aria-label={`Remove ${filter} filter`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    removeFilter(filter);
+                  }
+                }}
+              >
+                {filter} 
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter(filter)}
+                  aria-hidden="true"
+                />
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Job List */}
       <div className="p-0">

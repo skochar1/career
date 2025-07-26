@@ -17,8 +17,8 @@ export default function Home() {
       {/* Main content area with filters and job results */}
       <div className="container mx-auto">
         <div className="flex gap-6 px-4 py-6">
-          {/* Sidebar - Hidden on mobile, shown on desktop */}
-          <div className="hidden lg:block lg:w-80 flex-shrink-0">
+          {/* Sidebar - Always visible for now */}
+          <div className="w-80 flex-shrink-0">
             <FilterSidebar />
           </div>
           
