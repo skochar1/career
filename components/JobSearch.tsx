@@ -167,7 +167,8 @@ export function JobSearch({ onSearch }: JobSearchProps) {
     <div className="bg-background text-foreground">
       <div className="py-4" role="search" aria-label="Job search">
         <form onSubmit={handleSearchSubmit} className="space-y-4">
-          <div className="flex items-center justify-center gap-2 mb-4">
+          {/* Desktop layout - horizontal */}
+          <div className="hidden md:flex items-center justify-center gap-2 mb-4">
             <div className="flex items-center rounded-full border border-gray-300 bg-white shadow-sm overflow-hidden">
               <Search className="h-4 w-4 text-gray-400 ml-4" aria-hidden="true" />
               <input
@@ -199,6 +200,40 @@ export function JobSearch({ onSearch }: JobSearchProps) {
               Search Jobs
             </button>
           </div>
+
+          {/* Mobile layout - vertical */}
+          <div className="md:hidden space-y-3 mb-4">
+            <div className="flex items-center rounded-lg border border-gray-300 bg-white shadow-sm overflow-hidden">
+              <Search className="h-4 w-4 text-gray-400 ml-3" aria-hidden="true" />
+              <input
+                id="job-search-mobile"
+                placeholder="Job title, company, or keywords"
+                className="flex-1 px-3 py-3 text-black focus:outline-none text-sm placeholder:text-gray-500 bg-transparent"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Job title, company, or keywords"
+              />
+            </div>
+
+            <div className="flex items-center rounded-lg border border-gray-300 bg-white shadow-sm overflow-hidden">
+              <MapPin className="h-4 w-4 text-gray-400 ml-3" aria-hidden="true" />
+              <input
+                id="location-search-mobile"
+                placeholder="City, state, zip code, or remote"
+                className="flex-1 px-3 py-3 text-black focus:outline-none text-sm placeholder:text-gray-500 bg-transparent"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                aria-label="Location"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full px-6 py-3 bg-white text-black border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+            >
+              Search Jobs
+            </button>
+          </div>
         </form>
 
         <div className="text-center mb-4">
@@ -225,7 +260,7 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                 Submit Resume for Curated Results
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md !bg-white border border-gray-300 shadow-xl">
+            <DialogContent className="sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto !bg-white border border-gray-300 shadow-xl">
               <DialogHeader>
                 <DialogTitle className="text-gray-900">Submit Your Resume</DialogTitle>
                 <DialogDescription className="text-gray-600">
@@ -280,15 +315,15 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                     />
                   </div>
 
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
                     <button
-                      className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
+                      className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium order-2 sm:order-1"
                       onClick={resetUpload}
                     >
                       Cancel
                     </button>
                     <button
-                      className="px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
+                      className="px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium order-1 sm:order-2"
                       onClick={handleSubmitResume}
                       disabled={!uploadedFile || isUploading}
                     >

@@ -309,42 +309,44 @@ export function JobListings({
   return (
     <div className="flex-1" role="main" aria-label="Job search results">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-0 py-4">
-        <div className="text-xl font-medium text-gray-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-0 py-4 gap-4">
+        <div className="text-lg sm:text-xl font-medium text-gray-500">
           {isPersonalized 
             ? `${jobs.length} personalized job recommendations` 
             : `Showing ${jobs.length} of ${totalJobs} jobs`
           }
         </div>
-        {isPersonalized && (
-          <button
-            onClick={resetToDefaultJobs}
-            className="text-sm text-gray-600 hover:text-gray-800 underline"
-          >
-            View all jobs
-          </button>
-        )}
-        {!isPersonalized && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
-            <select 
-              id="sort-select"
-              value={externalSortBy || sortBy}
-              onChange={(e) => {
-                const newSort = e.target.value;
-                setSortBy(newSort);
-                onSortChange?.(newSort);
-              }}
-              className="border border-gray-200 rounded-xl px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Sort job results"
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {isPersonalized && (
+            <button
+              onClick={resetToDefaultJobs}
+              className="text-sm text-gray-600 hover:text-gray-800 underline text-left sm:text-center"
             >
-              <option value="relevance">Relevance</option>
-              <option value="date">Date Posted</option>
-              <option value="salary">Salary</option>
-              <option value="company">Company</option>
-            </select>
-          </div>
-        )}
+              View all jobs
+            </button>
+          )}
+          {!isPersonalized && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort-select" className="text-sm text-gray-600 whitespace-nowrap">Sort by:</label>
+              <select 
+                id="sort-select"
+                value={externalSortBy || sortBy}
+                onChange={(e) => {
+                  const newSort = e.target.value;
+                  setSortBy(newSort);
+                  onSortChange?.(newSort);
+                }}
+                className="border border-gray-200 rounded-xl px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                aria-label="Sort job results"
+              >
+                <option value="relevance">Relevance</option>
+                <option value="date">Date Posted</option>
+                <option value="salary">Salary</option>
+                <option value="company">Company</option>
+              </select>
+            </div>
+          )}
+        </div>
       </div>
       {/* Job list */}
       <div className="space-y-3">
@@ -370,59 +372,60 @@ export function JobListings({
               aria-labelledby={`job-title-${job.id}`}
             >
               {/* Header: logo, title, tags, save/ext link */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
                   <div
-                    className="rounded-xl flex-shrink-0 object-cover w-14 h-14 bg-gray-200 flex items-center justify-center font-bold text-lg text-gray-500"
-                    style={{ fontSize: "1.1rem" }}
+                    className="rounded-xl flex-shrink-0 object-cover w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 flex items-center justify-center font-bold text-sm sm:text-lg text-gray-500"
+                    style={{ fontSize: "0.9rem" }}
                   >
                     {job.company?.split(" ").map(w => w[0]).join("").toUpperCase() || "?"}
                   </div>
 
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2 sm:items-center mb-2">
                       <h3
                         id={`job-title-${job.id}`}
-                        className="text-lg font-semibold text-gray-900 mr-2"
+                        className="text-base sm:text-lg font-semibold text-gray-900 break-words"
                       >
                         {job.title}
                       </h3>
-                      {isPersonalized && matchScore && (
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMatchScoreColor(matchScore)}`}>
-                          {matchScore}% Match
-                        </span>
-                      )}
-                      {job.remote_eligible === 1 && (
-                        <span className="bg-gray-100 text-gray-800 rounded-full px-2 py-0.5 text-xs font-medium">
-                          Remote
-                        </span>
-                      )}
-                      {["Engineering", "Product"].includes(job.department) && (
-                        <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium ml-2">
-                          Actively hiring
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
+                        {isPersonalized && matchScore && (
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMatchScoreColor(matchScore)}`}>
+                            {matchScore}% Match
+                          </span>
+                        )}
+                        {job.remote_eligible === 1 && (
+                          <span className="bg-gray-100 text-gray-800 rounded-full px-2 py-0.5 text-xs font-medium">
+                            Remote
+                          </span>
+                        )}
+                        {["Engineering", "Product"].includes(job.department) && (
+                          <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium">
+                            Actively hiring
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Company/location/date */}
-                    <div className="flex flex-wrap gap-4 items-center text-gray-500 text-sm mb-1">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-4 text-gray-500 text-sm mb-1">
                       <span className="flex items-center gap-1">
-                        <Building className="h-4 w-4" aria-hidden="true" />
-                        <span>{job.company}</span>
+                        <Building className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span className="truncate">{job.company}</span>
                       </span>
                       <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" aria-hidden="true" />
-                        <span>{job.location}</span>
+                        <MapPin className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span className="truncate">{job.location}</span>
                       </span>
-                      {/* Optional: add created_at or other info */}
                     </div>
                   </div>
                 </div>
                 {/* Save/ext links */}
-                <div className="flex items-center gap-1">
+                <div className="flex flex-col sm:flex-row items-center gap-1">
                   <button
-                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
                     onClick={() => toggleSaveJob(job.id)}
                     aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to saved jobs`}
                     aria-pressed={isSaved}
@@ -433,7 +436,7 @@ export function JobListings({
                     />
                   </button>
                   <button
-                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-200"
                     aria-label={`View ${job.title} on external site`}
                   >
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -521,15 +524,15 @@ export function JobListings({
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
-                  className="bg-black text-white rounded px-4 py-2 font-medium text-sm hover:bg-gray-900 transition"
+                  className="bg-black text-white rounded px-4 py-2 font-medium text-sm hover:bg-gray-900 transition flex-1 sm:flex-none"
                   aria-label={`Apply for ${job.title} position`}
                 >
                   Apply Now
                 </button>
                 <button
-                  className="bg-white border border-gray-300 rounded px-4 py-2 text-gray-800 font-medium text-sm hover:bg-gray-100 transition"
+                  className="bg-white border border-gray-300 rounded px-4 py-2 text-gray-800 font-medium text-sm hover:bg-gray-100 transition flex-1 sm:flex-none"
                   aria-label={`View details for ${job.title}`}
                 >
                   View Details
