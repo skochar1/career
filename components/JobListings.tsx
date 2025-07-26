@@ -27,17 +27,39 @@ export function JobListings() {
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalJobs, setTotalJobs] = useState(0);
 
   useEffect(() => {
     async function fetchJobs() {
       setLoading(true);
-      const res = await fetch("/api/jobs");
+      const res = await fetch("/api/jobs?page=1&limit=5");
       const data = await res.json();
       setJobs(data.jobs || []);
+      setTotalJobs(data.pagination?.total || 0);
+      setHasMore(data.pagination?.hasNext || false);
       setLoading(false);
     }
     fetchJobs();
   }, []);
+
+  const loadMoreJobs = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    const nextPage = currentPage + 1;
+    const res = await fetch(`/api/jobs?page=${nextPage}&limit=5`);
+    const data = await res.json();
+    
+    if (data.jobs) {
+      setJobs(prev => [...prev, ...data.jobs]);
+      setCurrentPage(nextPage);
+      setHasMore(data.pagination?.hasNext || false);
+    }
+    setLoadingMore(false);
+  };
 
   const toggleJobExpansion = (jobId: number) => {
     setExpandedJobs(prev => {
@@ -69,7 +91,9 @@ export function JobListings() {
     <div className="flex-1" role="main" aria-label="Job search results">
       {/* Top bar */}
       <div className="flex items-center justify-between px-0 py-4">
-        <div className="text-xl font-medium text-gray-500">{jobs.length} jobs found</div>
+        <div className="text-xl font-medium text-gray-500">
+          Showing {jobs.length} of {totalJobs} jobs
+        </div>
         <div className="flex items-center gap-2">
           <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
           <select 
@@ -230,6 +254,25 @@ export function JobListings() {
           );
         })}
       </div>
+      
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={loadMoreJobs}
+            disabled={loadingMore}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loadingMore ? 'Loading...' : 'Load More Jobs'}
+          </button>
+        </div>
+      )}
+      
+      {!hasMore && jobs.length > 0 && (
+        <div className="text-center mt-6 text-gray-500">
+          No more jobs to load
+        </div>
+      )}
     </div>
   );
 }

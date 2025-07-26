@@ -91,6 +91,7 @@ function seedSampleJobs() {
     `);
 
     const sampleJobs = [
+      // Engineering roles
       {
         title: 'Senior Software Engineer',
         description: 'Build scalable web applications using modern technologies. Lead technical decisions and mentor junior developers.',
@@ -120,6 +121,20 @@ function seedSampleJobs() {
         remote_eligible: false
       },
       {
+        title: 'DevOps Engineer',
+        description: 'Manage cloud infrastructure and CI/CD pipelines. Ensure high availability and scalability.',
+        location: 'Denver, CO',
+        company: 'CloudNative Solutions',
+        department: 'Engineering',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['AWS', 'Kubernetes', 'Docker', 'Linux']),
+        preferred_skills: JSON.stringify(['Terraform', 'Prometheus', 'GitLab CI']),
+        salary_min: 100000,
+        salary_max: 130000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      {
         title: 'VP of Engineering',
         description: 'Lead our engineering organization and drive technical strategy for the company.',
         location: 'Austin, TX',
@@ -133,12 +148,13 @@ function seedSampleJobs() {
         employment_type: 'full-time',
         remote_eligible: true
       },
+      // Healthcare roles
       {
         title: 'Registered Nurse',
         description: 'Provide excellent patient care in our modern medical facility.',
         location: 'Boston, MA',
         company: 'HealthFirst Medical',
-        department: 'Nursing',
+        department: 'Healthcare',
         seniority_level: 'mid',
         required_skills: JSON.stringify(['Nursing License', 'Patient Care', 'Medical Records']),
         preferred_skills: JSON.stringify(['ICU Experience', 'Electronic Health Records']),
@@ -147,6 +163,21 @@ function seedSampleJobs() {
         employment_type: 'full-time',
         remote_eligible: false
       },
+      {
+        title: 'Physician Assistant',
+        description: 'Work alongside physicians to provide comprehensive patient care.',
+        location: 'Chicago, IL',
+        company: 'Metro Health System',
+        department: 'Healthcare',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['PA License', 'Clinical Skills', 'Patient Assessment']),
+        preferred_skills: JSON.stringify(['Emergency Medicine', 'Surgery Experience']),
+        salary_min: 95000,
+        salary_max: 125000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      // Data & Analytics roles
       {
         title: 'Data Scientist',
         description: 'Analyze complex datasets to drive business insights and build predictive models.',
@@ -158,6 +189,180 @@ function seedSampleJobs() {
         preferred_skills: JSON.stringify(['TensorFlow', 'AWS', 'Spark']),
         salary_min: 110000,
         salary_max: 140000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      {
+        title: 'Business Analyst',
+        description: 'Bridge the gap between business needs and technical solutions. Analyze processes and recommend improvements.',
+        location: 'Atlanta, GA',
+        company: 'Business Solutions Inc',
+        department: 'Analytics',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['Excel', 'SQL', 'Process Analysis', 'Documentation']),
+        preferred_skills: JSON.stringify(['Tableau', 'Power BI', 'Agile']),
+        salary_min: 60000,
+        salary_max: 80000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      // Marketing roles
+      {
+        title: 'Digital Marketing Manager',
+        description: 'Lead digital marketing campaigns across multiple channels. Drive customer acquisition and engagement.',
+        location: 'Los Angeles, CA',
+        company: 'Brand Builders',
+        department: 'Marketing',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['Digital Marketing', 'Google Ads', 'Social Media', 'Analytics']),
+        preferred_skills: JSON.stringify(['SEO', 'Content Strategy', 'Marketing Automation']),
+        salary_min: 75000,
+        salary_max: 95000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      {
+        title: 'Content Writer',
+        description: 'Create compelling content for websites, blogs, and marketing materials.',
+        location: 'Remote',
+        company: 'ContentCraft Agency',
+        department: 'Marketing',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['Writing', 'Research', 'SEO', 'Content Management']),
+        preferred_skills: JSON.stringify(['WordPress', 'Social Media', 'Email Marketing']),
+        salary_min: 45000,
+        salary_max: 60000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      // Finance roles
+      {
+        title: 'Financial Analyst',
+        description: 'Analyze financial data and create reports to support business decisions.',
+        location: 'New York, NY',
+        company: 'Investment Partners',
+        department: 'Finance',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['Excel', 'Financial Analysis', 'Accounting', 'Financial Modeling']),
+        preferred_skills: JSON.stringify(['Bloomberg', 'Python', 'CFA']),
+        salary_min: 80000,
+        salary_max: 100000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      {
+        title: 'Accountant',
+        description: 'Manage accounts payable, receivable, and general ledger activities.',
+        location: 'Phoenix, AZ',
+        company: 'Accounting Associates',
+        department: 'Finance',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['QuickBooks', 'Excel', 'Accounting Principles', 'Tax Preparation']),
+        preferred_skills: JSON.stringify(['CPA', 'Sage', 'Financial Reporting']),
+        salary_min: 45000,
+        salary_max: 60000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      // Sales roles
+      {
+        title: 'Sales Representative',
+        description: 'Build relationships with clients and drive revenue through consultative selling.',
+        location: 'Dallas, TX',
+        company: 'Sales Solutions Corp',
+        department: 'Sales',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['Sales', 'Communication', 'CRM', 'Negotiation']),
+        preferred_skills: JSON.stringify(['Salesforce', 'Lead Generation', 'B2B Sales']),
+        salary_min: 50000,
+        salary_max: 70000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      {
+        title: 'Account Manager',
+        description: 'Manage key client relationships and ensure customer satisfaction and retention.',
+        location: 'Miami, FL',
+        company: 'Client Success Partners',
+        department: 'Sales',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['Account Management', 'Customer Success', 'Communication', 'Problem Solving']),
+        preferred_skills: JSON.stringify(['Salesforce', 'Project Management', 'Upselling']),
+        salary_min: 65000,
+        salary_max: 85000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      // Education roles
+      {
+        title: 'Elementary School Teacher',
+        description: 'Educate and inspire young learners in grades K-5.',
+        location: 'Portland, OR',
+        company: 'Pacific Elementary',
+        department: 'Education',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['Teaching License', 'Classroom Management', 'Curriculum Development', 'Child Psychology']),
+        preferred_skills: JSON.stringify(['Technology Integration', 'Special Education', 'ESL']),
+        salary_min: 45000,
+        salary_max: 65000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      // Design roles
+      {
+        title: 'UX Designer',
+        description: 'Design intuitive user experiences for web and mobile applications.',
+        location: 'San Diego, CA',
+        company: 'Design Studio',
+        department: 'Design',
+        seniority_level: 'mid',
+        required_skills: JSON.stringify(['Figma', 'User Research', 'Wireframing', 'Prototyping']),
+        preferred_skills: JSON.stringify(['Adobe Creative Suite', 'HTML/CSS', 'User Testing']),
+        salary_min: 85000,
+        salary_max: 110000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      {
+        title: 'Graphic Designer',
+        description: 'Create visual designs for print and digital media.',
+        location: 'Nashville, TN',
+        company: 'Creative Agency',
+        department: 'Design',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['Adobe Creative Suite', 'Typography', 'Brand Design', 'Print Design']),
+        preferred_skills: JSON.stringify(['Web Design', 'Motion Graphics', 'Photography']),
+        salary_min: 40000,
+        salary_max: 55000,
+        employment_type: 'full-time',
+        remote_eligible: true
+      },
+      // Operations roles
+      {
+        title: 'Operations Manager',
+        description: 'Oversee daily operations and improve operational efficiency.',
+        location: 'Charlotte, NC',
+        company: 'Logistics Plus',
+        department: 'Operations',
+        seniority_level: 'senior',
+        required_skills: JSON.stringify(['Operations Management', 'Process Improvement', 'Team Leadership', 'Budget Management']),
+        preferred_skills: JSON.stringify(['Lean Six Sigma', 'Supply Chain', 'ERP Systems']),
+        salary_min: 90000,
+        salary_max: 120000,
+        employment_type: 'full-time',
+        remote_eligible: false
+      },
+      {
+        title: 'Project Coordinator',
+        description: 'Support project management activities and ensure timely delivery.',
+        location: 'Salt Lake City, UT',
+        company: 'Project Solutions',
+        department: 'Operations',
+        seniority_level: 'junior',
+        required_skills: JSON.stringify(['Project Management', 'Communication', 'Organization', 'Microsoft Office']),
+        preferred_skills: JSON.stringify(['Agile', 'Jira', 'PMP Certification']),
+        salary_min: 45000,
+        salary_max: 60000,
         employment_type: 'full-time',
         remote_eligible: true
       }
@@ -190,6 +395,7 @@ export interface Job {
   id: number;
   title: string;
   description: string;
+  full_description?: string;
   location: string;
   company: string;
   department?: string;
