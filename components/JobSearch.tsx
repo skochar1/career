@@ -20,13 +20,14 @@ export function JobSearch() {
     }
   };
 
-  const handleSubmitResume = async () => {
+  const handleSubmitResume = () => {
     if (uploadedFile) {
       setIsUploading(true);
       // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsUploading(false);
-      setUploadComplete(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadComplete(true);
+      }, 2000);
     }
   };
 
@@ -52,7 +53,7 @@ export function JobSearch() {
   ];
 
   return (
-    <div className="bg-background">
+    <div className="bg-white">
       {/* Search Section */}
       <div className="bg-gray-900 text-white py-8" role="search" aria-label="Job search">
         <div className="container mx-auto px-4">
@@ -60,44 +61,38 @@ export function JobSearch() {
             <h1 className="text-2xl font-bold text-center mb-6 text-white">Find your next opportunity</h1>
             
             <form onSubmit={handleSearchSubmit} className="space-y-4">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="relative">
-                  <Label htmlFor="job-search" className="sr-only">
-                    Job title, company, or keywords
-                  </Label>
-                  <Search 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" 
-                    aria-hidden="true"
-                  />
+              <div className="flex items-center justify-center gap-1 mb-4">
+                <div className="flex items-center bg-white rounded-full border border-gray-300 shadow-sm">
+                  <Search className="h-4 w-4 text-gray-400 ml-4" aria-hidden="true" />
                   <input
                     id="job-search"
                     placeholder="Job title, company, or keywords"
-                    className="w-80 pl-10 pr-4 py-2.5 bg-white text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder:text-gray-500"
+                    className="flex-1 px-3 py-3 bg-transparent text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     aria-describedby="job-search-help"
                   />
-                </div>
-                <div className="relative">
-                  <Label htmlFor="location-search" className="sr-only">
-                    Location
+                  <Label htmlFor="job-search" className="sr-only">
+                    Job title, company, or keywords
                   </Label>
-                  <MapPin 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" 
-                    aria-hidden="true"
-                  />
+                </div>
+                <div className="flex items-center bg-white rounded-full border border-gray-300 shadow-sm">
+                  <MapPin className="h-4 w-4 text-gray-400 ml-4" aria-hidden="true" />
                   <input
                     id="location-search"
                     placeholder="City, state, zip code, or remote"
-                    className="w-80 pl-10 pr-4 py-2.5 bg-white text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder:text-gray-500"
+                    className="flex-1 px-3 py-3 bg-transparent text-black focus:outline-none text-sm placeholder:text-gray-500 border-none min-w-[300px]"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     aria-describedby="location-search-help"
                   />
+                  <Label htmlFor="location-search" className="sr-only">
+                    Location
+                  </Label>
                 </div>
                 <button 
                   type="submit"
-                  className="px-6 py-2.5 bg-gray-100 text-black border border-gray-300 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-sm"
+                  className="px-6 py-3 bg-white text-black border border-gray-300 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
                   aria-describedby="search-help"
                 >
                   Search Jobs
@@ -136,24 +131,24 @@ export function JobSearch() {
                   
                   {!uploadComplete ? (
                     <div className="space-y-4">
-                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center relative">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center relative">
                         {uploadedFile ? (
                           <div className="flex items-center justify-center gap-2 text-green-600">
                             <FileText className="h-8 w-8" aria-hidden="true" />
                             <div>
                               <p className="font-medium">{uploadedFile.name}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-gray-500">
                                 {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
                           </div>
                         ) : (
                           <div>
-                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" aria-hidden="true" />
-                            <p className="text-sm text-muted-foreground mb-2">
+                            <Upload className="h-8 w-8 mx-auto mb-2 text-gray-500" aria-hidden="true" />
+                            <p className="text-sm text-gray-500 mb-2">
                               Drop your resume here or click to browse
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500">
                               Supports PDF, DOC, DOCX (Max 5MB)
                             </p>
                           </div>
@@ -204,7 +199,7 @@ export function JobSearch() {
                         <Check className="h-8 w-8 text-green-600" aria-hidden="true" />
                       </div>
                       <h3 className="text-lg font-medium mb-2">Resume Submitted Successfully!</h3>
-                      <p className="text-muted-foreground mb-6">
+                      <p className="text-gray-500 mb-6">
                         We're analyzing your resume to find the best job matches. You'll see personalized recommendations shortly.
                       </p>
                       <div className="space-y-2">
@@ -233,12 +228,21 @@ export function JobSearch() {
             </div>
 
             {/* Quick Search Tags */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap justify-center" style={{gap: '32px'}}>
               <span className="sr-only">Quick search options:</span>
               {quickSearchTags.map((tag) => (
                 <button 
                   key={tag.value}
-                  className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-sm hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                  className="hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all"
+                  style={{
+                    padding: '2px 6px',
+                    backgroundColor: '#7dd3fc',
+                    color: '#1e40af',
+                    fontSize: '9px',
+                    lineHeight: '1',
+                    border: '1px solid #38bdf8',
+                    borderRadius: '4px'
+                  }}
                   aria-label={`Quick search for ${tag.label}`}
                   onClick={() => {
                     setSearchQuery(tag.value);

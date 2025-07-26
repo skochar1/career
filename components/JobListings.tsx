@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Clock, DollarSign, Building, Bookmark, ExternalLink, Filter, ChevronDown, ChevronUp, X } from "lucide-react";
+import { MapPin, Clock, DollarSign, Building, Bookmark, ExternalLink, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useState } from "react";
 
@@ -150,23 +150,20 @@ export function JobListings() {
 
       {/* Active Filters */}
       {activeFilters.length > 0 && (
-        <div className="px-6 py-3 border-b border-gray-200 bg-white">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Active filters">
+        <div className="px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="flex flex-wrap gap-3 items-center" role="group" aria-label="Active filters">
             {activeFilters.map((filter) => (
               <span 
                 key={filter} 
-                className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-full text-sm"
-                role="button"
-                tabIndex={0}
-                aria-label={`Remove ${filter} filter`}
+                className="inline-flex items-center px-4 py-2 rounded-full bg-[#f3f3f5] text-[#111322] text-sm font-medium"
               >
-                {filter} 
+                {filter}
                 <button
-                  className="ml-1 h-4 w-4 flex items-center justify-center rounded-full hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="ml-2 text-[#717182] hover:text-red-600 focus:outline-none transition-colors"
                   onClick={() => removeFilter(filter)}
                   aria-label={`Remove ${filter} filter`}
                 >
-                  <X className="h-3 w-3 text-gray-500" aria-hidden="true" />
+                  ×
                 </button>
               </span>
             ))}
@@ -199,10 +196,10 @@ export function JobListings() {
                       className="rounded-lg flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="mb-3">
                         <h3 
                           id={`job-title-${job.id}`}
-                          className="text-lg font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
+                          className="text-xl font-semibold text-gray-900 hover:text-blue-600 cursor-pointer mb-2"
                           tabIndex={0}
                           role="button"
                           aria-describedby={`job-details-${job.id}`}
@@ -215,30 +212,32 @@ export function JobListings() {
                         >
                           {job.title}
                         </h3>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">
-                          {job.workType}
-                        </span>
-                        {job.urgentHiring && (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-md">
-                            Actively hiring
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-md font-medium">
+                            {job.workType}
                           </span>
-                        )}
+                          {job.urgentHiring && (
+                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-md font-medium">
+                              Actively hiring
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div 
                         id={`job-details-${job.id}`}
-                        className="flex items-center gap-4 text-sm text-gray-600"
+                        className="flex flex-wrap items-center gap-6 text-sm text-gray-600"
                       >
-                        <span className="flex items-center gap-1">
-                          <Building className="h-3 w-3" aria-hidden="true" />
-                          {job.company}
+                        <span className="flex items-center gap-2">
+                          <Building className="h-4 w-4" aria-hidden="true" />
+                          <span className="font-medium">{job.company}</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" aria-hidden="true" />
-                          {job.location}
+                        <span className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" aria-hidden="true" />
+                          <span>{job.location}</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" aria-hidden="true" />
-                          {job.postedDate}
+                        <span className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" aria-hidden="true" />
+                          <span>{job.postedDate}</span>
                         </span>
                       </div>
                     </div>
@@ -264,13 +263,10 @@ export function JobListings() {
                   </div>
                 </div>
 
-                {/* Job type and salary */}
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md font-medium">
-                    {job.type}
-                  </span>
-                  <span className="flex items-center gap-1 text-sm text-gray-600 font-medium">
-                    <DollarSign className="h-4 w-4" aria-hidden="true" />
+                {/* Salary */}
+                <div className="mb-5">
+                  <span className="flex items-center gap-2 text-base text-gray-800 font-semibold">
+                    <DollarSign className="h-5 w-5" aria-hidden="true" />
                     <span aria-label={`Salary range ${job.salary}`}>{job.salary}</span>
                   </span>
                 </div>
