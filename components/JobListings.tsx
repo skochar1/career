@@ -22,7 +22,21 @@ interface Job {
   created_at?: string;
 }
 
-export function JobListings() {
+interface JobListingsProps {
+  filters?: any;
+  sortBy?: string;
+  searchQuery?: string;
+  locationQuery?: string;
+  onSortChange?: (sort: string) => void;
+}
+
+export function JobListings({ 
+  filters: externalFilters, 
+  sortBy: externalSortBy, 
+  searchQuery, 
+  locationQuery, 
+  onSortChange 
+}: JobListingsProps = {}) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
@@ -34,6 +48,8 @@ export function JobListings() {
   const [sessionId, setSessionId] = useState<string>('');
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [parsedResumeData, setParsedResumeData] = useState<any>(null);
+  const [sortBy, setSortBy] = useState<string>('relevance');
+  const [filters, setFilters] = useState<any>(null);
 
   useEffect(() => {
     // Check if user has uploaded resume on component mount
@@ -64,15 +80,76 @@ export function JobListings() {
     };
   }, []);
 
-  const fetchDefaultJobs = async () => {
-    setLoading(true);
+  // Refetch jobs when filters, sorting, or search change
+  useEffect(() => {
+    if (!isPersonalized) {
+      fetchDefaultJobs(1);
+    }
+  }, [externalFilters, externalSortBy, searchQuery, locationQuery, isPersonalized]);
+
+  const buildQueryParams = (page = 1) => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', '5');
+    
+    // Add sorting
+    const currentSortBy = externalSortBy || sortBy;
+    if (currentSortBy && currentSortBy !== 'relevance') {
+      params.set('sort', currentSortBy);
+    }
+    
+    // Add search parameters
+    if (searchQuery?.trim()) {
+      params.set('search', searchQuery.trim());
+    }
+    
+    // Add filters
+    const currentFilters = externalFilters || filters;
+    if (currentFilters) {
+      if (currentFilters.workType?.length > 0) {
+        if (currentFilters.workType.includes('Remote')) {
+          params.set('remote', 'true');
+        }
+      }
+      if (currentFilters.jobType?.length > 0) {
+        params.set('employment_type', currentFilters.jobType.join(','));
+      }
+      if (currentFilters.department?.length > 0) {
+        params.set('department', currentFilters.department.join(','));
+      }
+      if (currentFilters.seniority) {
+        params.set('seniority_level', currentFilters.seniority.toLowerCase());
+      }
+      if (currentFilters.location) {
+        params.set('location', currentFilters.location);
+      }
+    }
+    
+    // Add location from search if not in filters
+    if (locationQuery?.trim() && !currentFilters?.location) {
+      params.set('location', locationQuery.trim());
+    }
+    
+    return params.toString();
+  };
+
+  const fetchDefaultJobs = async (page = 1) => {
+    setLoading(page === 1);
     try {
-      const res = await fetch("/api/jobs?page=1&limit=5");
+      const queryString = buildQueryParams(page);
+      const res = await fetch(`/api/jobs?${queryString}`);
       const data = await res.json();
-      setJobs(data.jobs || []);
+      
+      if (page === 1) {
+        setJobs(data.jobs || []);
+        setCurrentPage(1);
+      } else {
+        setJobs(prev => [...prev, ...(data.jobs || [])]);
+        setCurrentPage(page);
+      }
+      
       setTotalJobs(data.pagination?.total || 0);
       setHasMore(data.pagination?.hasNext || false);
-      setCurrentPage(1);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -110,15 +187,7 @@ export function JobListings() {
     if (loadingMore || !hasMore || isPersonalized) return; // Don't load more for personalized
     
     setLoadingMore(true);
-    const nextPage = currentPage + 1;
-    const res = await fetch(`/api/jobs?page=${nextPage}&limit=5`);
-    const data = await res.json();
-    
-    if (data.jobs) {
-      setJobs(prev => [...prev, ...data.jobs]);
-      setCurrentPage(nextPage);
-      setHasMore(data.pagination?.hasNext || false);
-    }
+    await fetchDefaultJobs(currentPage + 1);
     setLoadingMore(false);
   };
 
@@ -175,20 +244,27 @@ export function JobListings() {
             View all jobs
           </button>
         )}
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
-          <select 
-            id="sort-select"
-            className="border border-gray-200 rounded-xl px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Sort job results"
-            // Optional: implement sorting logic
-          >
-            <option value="relevance">Relevance</option>
-            <option value="date">Date Posted</option>
-            <option value="salary">Salary</option>
-            <option value="company">Company</option>
-          </select>
-        </div>
+        {!isPersonalized && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort-select" className="text-sm text-gray-600">Sort by:</label>
+            <select 
+              id="sort-select"
+              value={externalSortBy || sortBy}
+              onChange={(e) => {
+                const newSort = e.target.value;
+                setSortBy(newSort);
+                onSortChange?.(newSort);
+              }}
+              className="border border-gray-200 rounded-xl px-3 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Sort job results"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="date">Date Posted</option>
+              <option value="salary">Salary</option>
+              <option value="company">Company</option>
+            </select>
+          </div>
+        )}
       </div>
       {/* Job list */}
       <div className="space-y-3">

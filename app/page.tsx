@@ -1,8 +1,11 @@
+'use client';
+
 import { JobSearch } from '../components/JobSearch';
-import { FilterSidebar } from '../components/FilterSidebar';
+import { FilterSidebar, JobFilters } from '../components/FilterSidebar';
 import { JobListings } from '../components/JobListings';
 import { ChatAssistant } from '../components/ChatAssistant';
 import { Header } from '../components/Header';
+import { useState } from 'react';
 
 /**
  * Home page for the career portal. This page composes the high‑level
@@ -11,6 +14,35 @@ import { Header } from '../components/Header';
  */
 
 export default function Home() {
+  const [filters, setFilters] = useState<JobFilters>({
+    workType: [],
+    jobType: [],
+    datePosted: '',
+    location: '',
+    seniority: '',
+    department: []
+  });
+  const [sortBy, setSortBy] = useState<string>('relevance');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [locationQuery, setLocationQuery] = useState<string>('');
+
+  const handleFiltersChange = (newFilters: JobFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+  };
+
+  const handleSearch = (query: string, location: string) => {
+    setSearchQuery(query);
+    setLocationQuery(location);
+    // Update location in filters if provided
+    if (location.trim()) {
+      setFilters(prev => ({ ...prev, location: location.trim() }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -22,7 +54,7 @@ export default function Home() {
           </h1>
 
           {/* Your search bar and resume uploader here */}
-          <JobSearch />
+          <JobSearch onSearch={handleSearch} />
         </div>
       </div>
 
@@ -31,11 +63,17 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-10 flex gap-8">
           {/* Sidebar */}
           <div className="w-80 flex-shrink-0">
-            <FilterSidebar />
+            <FilterSidebar onFiltersChange={handleFiltersChange} />
           </div>
           {/* Job listings */}
           <div className="flex-1 min-w-0">
-            <JobListings />
+            <JobListings 
+              filters={filters} 
+              sortBy={sortBy} 
+              searchQuery={searchQuery}
+              locationQuery={locationQuery}
+              onSortChange={handleSortChange}
+            />
           </div>
         </div>
       </div>

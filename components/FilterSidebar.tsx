@@ -1,17 +1,101 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// --- Replace with actual state management for filters if needed
-const mockActiveFilters = ["Remote", "Full-time", "Entry Level"];
+interface FilterSidebarProps {
+  onFiltersChange?: (filters: JobFilters) => void;
+}
 
-export function FilterSidebar() {
-  // Use state or context for actual filter logic in real app
-  const [activeFilters, setActiveFilters] = useState<string[]>(mockActiveFilters);
+export interface JobFilters {
+  workType: string[];
+  jobType: string[];
+  datePosted: string;
+  location: string;
+  seniority: string;
+  department: string[];
+}
+
+export function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
+  const [filters, setFilters] = useState<JobFilters>({
+    workType: [],
+    jobType: [],
+    datePosted: '',
+    location: '',
+    seniority: '',
+    department: []
+  });
+
+  // Derived active filters for display
+  const getActiveFilters = () => {
+    const active: string[] = [];
+    if (filters.workType.length > 0) active.push(...filters.workType);
+    if (filters.jobType.length > 0) active.push(...filters.jobType);
+    if (filters.datePosted) active.push(filters.datePosted);
+    if (filters.location) active.push(`Location: ${filters.location}`);
+    if (filters.seniority) active.push(filters.seniority);
+    if (filters.department.length > 0) active.push(...filters.department);
+    return active;
+  };
+
+  const activeFilters = getActiveFilters();
+
+  useEffect(() => {
+    onFiltersChange?.(filters);
+  }, [filters, onFiltersChange]);
+
+  const updateWorkType = (type: string, checked: boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      workType: checked 
+        ? [...prev.workType, type]
+        : prev.workType.filter(t => t !== type)
+    }));
+  };
+
+  const updateJobType = (type: string, checked: boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      jobType: checked 
+        ? [...prev.jobType, type]
+        : prev.jobType.filter(t => t !== type)
+    }));
+  };
+
+  const updateDepartment = (dept: string, checked: boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      department: checked 
+        ? [...prev.department, dept]
+        : prev.department.filter(d => d !== dept)
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      workType: [],
+      jobType: [],
+      datePosted: '',
+      location: '',
+      seniority: '',
+      department: []
+    });
+  };
 
   const removeFilter = (filterToRemove: string) => {
-    setActiveFilters((prev) => prev.filter((f) => f !== filterToRemove));
+    if (filters.workType.includes(filterToRemove)) {
+      updateWorkType(filterToRemove, false);
+    } else if (filters.jobType.includes(filterToRemove)) {
+      updateJobType(filterToRemove, false);
+    } else if (filters.department.includes(filterToRemove)) {
+      updateDepartment(filterToRemove, false);
+    } else if (filterToRemove === filters.datePosted) {
+      setFilters(prev => ({ ...prev, datePosted: '' }));
+    } else if (filterToRemove.startsWith('Location:')) {
+      setFilters(prev => ({ ...prev, location: '' }));
+    } else if (filterToRemove === filters.seniority) {
+      setFilters(prev => ({ ...prev, seniority: '' }));
+    }
   };
 
   return (
@@ -25,7 +109,7 @@ export function FilterSidebar() {
           <h3 id="filters-heading" className="font-medium text-black text-lg">Filters</h3>
           <button
             className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded transition"
-            onClick={() => setActiveFilters([])}
+            onClick={clearAllFilters}
             aria-label="Clear all filters"
             type="button"
           >
@@ -71,6 +155,8 @@ export function FilterSidebar() {
                 <input
                   type="checkbox"
                   id={option.id}
+                  checked={filters.workType.includes(option.label)}
+                  onChange={(e) => updateWorkType(option.label, e.target.checked)}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
                 <label htmlFor={option.id} className="text-sm text-gray-700 cursor-pointer">
@@ -93,9 +179,12 @@ export function FilterSidebar() {
             ].map((option) => (
               <div key={option.id} className="flex items-center space-x-2">
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name="datePosted"
                   id={option.id}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  checked={filters.datePosted === option.label}
+                  onChange={(e) => setFilters(prev => ({ ...prev, datePosted: e.target.checked ? option.label : '' }))}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
                 />
                 <label htmlFor={option.id} className="text-sm text-gray-700 cursor-pointer">
                   {option.label}
@@ -114,10 +203,55 @@ export function FilterSidebar() {
                 <input
                   type="checkbox"
                   id={type}
+                  checked={filters.jobType.includes(type)}
+                  onChange={(e) => updateJobType(type, e.target.checked)}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
                 <label htmlFor={type} className="text-sm text-gray-700 cursor-pointer">
                   {type}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Department */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 text-black">Department</h4>
+          <div className="space-y-1">
+            {["Engineering", "Marketing", "Sales", "Healthcare", "Finance", "Analytics", "Design", "Operations", "Education"].map((dept) => (
+              <div key={dept} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={dept}
+                  checked={filters.department.includes(dept)}
+                  onChange={(e) => updateDepartment(dept, e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor={dept} className="text-sm text-gray-700 cursor-pointer">
+                  {dept}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Seniority Level */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 text-black">Seniority Level</h4>
+          <div className="space-y-1">
+            {["Junior", "Mid", "Senior", "Lead", "VP", "Executive"].map((level) => (
+              <div key={level} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="seniority"
+                  id={level}
+                  checked={filters.seniority === level}
+                  onChange={(e) => setFilters(prev => ({ ...prev, seniority: e.target.checked ? level : '' }))}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor={level} className="text-sm text-gray-700 cursor-pointer">
+                  {level}
                 </label>
               </div>
             ))}

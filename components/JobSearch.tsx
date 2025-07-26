@@ -11,7 +11,11 @@ import {
 import { Search, MapPin, Upload, FileText, Check } from "lucide-react";
 import { useState } from "react";
 
-export function JobSearch() {
+interface JobSearchProps {
+  onSearch?: (query: string, location: string) => void;
+}
+
+export function JobSearch({ onSearch }: JobSearchProps) {
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -116,6 +120,7 @@ export function JobSearch() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Search:", searchQuery, "Location:", locationQuery);
+    onSearch?.(searchQuery, locationQuery);
   };
 
   const quickSearchTags = [

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, Job } from '../../../lib/database';
 import { cache, getCacheKey } from '../../../lib/cache';
-import { searchJobs } from '../../../lib/search';
+import { searchJobs, initializeSearchIndex, jobSearchEngine } from '../../../lib/search';
+import { enhanceSearchQuery, buildSmartSearchTerms } from '../../../lib/smart-search';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get('location');
     const seniority = searchParams.get('seniority_level');
     const department = searchParams.get('department');
-    const remote = searchParams.get('remote_eligible');
+    const remote = searchParams.get('remote_eligible') || searchParams.get('remote');
+    const employmentType = searchParams.get('employment_type');
+    const sort = searchParams.get('sort');
     const search = searchParams.get('search');
     const sessionId = searchParams.get('session_id');
 
@@ -25,6 +28,8 @@ export async function GET(request: NextRequest) {
       seniority,
       department,
       remote,
+      employmentType,
+      sort,
       search,
       sessionId
     };
@@ -43,16 +48,29 @@ export async function GET(request: NextRequest) {
     } catch (e) {
       // Ignore error if column already exists
     }
-    let result;
+
+    // Initialize search index if not already done
+    if (!jobSearchEngine.isReady()) {
+      const allJobs = db.prepare('SELECT * FROM jobs WHERE is_active = 1').all() as Job[];
+      const processedJobs = allJobs.map(job => ({
+        ...job,
+        required_skills: JSON.parse(job.required_skills || '[]'),
+        preferred_skills: job.preferred_skills ? JSON.parse(job.preferred_skills) : []
+      }));
+      initializeSearchIndex(processedJobs);
+    }
+    let result: any;
 
     if (search && search.trim()) {
-      result = await handleSearchQuery(search, {
+      result = await handleSmartSearchQuery(search, {
         limit,
         offset,
+        sort,
         filters: {
           location: location || undefined,
           seniority_level: seniority || undefined,
           department: department || undefined,
+          employment_type: employmentType || undefined,
           remote_eligible: remote === 'true' ? true : undefined
         }
       }, sessionId, db);
@@ -62,6 +80,8 @@ export async function GET(request: NextRequest) {
         seniority,
         department,
         remote,
+        employmentType,
+        sort,
         sessionId,
         limit,
         offset
@@ -81,13 +101,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function handleSearchQuery(
+async function handleSmartSearchQuery(
   searchQuery: string,
   options: any,
   sessionId: string | null,
   db: any
 ) {
-  const searchResult = searchJobs(searchQuery, options);
+  // Enhance the search query using OpenAI
+  const enhancement = await enhanceSearchQuery(searchQuery);
+  const enhancedQuery = buildSmartSearchTerms(searchQuery, enhancement);
+  
+  console.log('Original query:', searchQuery);
+  console.log('Enhanced query:', enhancedQuery);
+  console.log('Search enhancement:', enhancement);
+
+  // Apply suggested filters if they're not already set
+  const updatedFilters = { ...options.filters };
+  
+  if (enhancement.suggestedFilters.departments?.length && enhancement.suggestedFilters.departments.length > 0 && !updatedFilters.department) {
+    // Use the first suggested department if none is already filtered
+    updatedFilters.department = enhancement.suggestedFilters.departments[0];
+  }
+  
+  if (enhancement.suggestedFilters.seniority && !updatedFilters.seniority_level) {
+    updatedFilters.seniority_level = enhancement.suggestedFilters.seniority;
+  }
+
+  const searchResult = searchJobs(enhancedQuery, {
+    ...options,
+    filters: updatedFilters
+  });
   
   let jobs = searchResult.results.map(doc => ({
     id: doc.id,
@@ -107,6 +150,9 @@ async function handleSearchQuery(
   if (sessionId && sessionId !== 'undefined') {
     jobs = await addMatchScores(jobs, sessionId, db);
     jobs.sort((a, b) => b.match_score - a.match_score);
+  } else {
+    // Apply sorting for non-personalized search
+    jobs = applySorting(jobs, options.sort);
   }
 
   const total = searchResult.total;
@@ -121,12 +167,51 @@ async function handleSearchQuery(
       totalPages: Math.ceil(total / limit),
       hasNext: offset + limit < total,
       hasPrev: offset > 0
-    }
+    },
+    searchEnhancement: enhancement
   };
 }
 
+
+function getOrderByClause(sort?: string): string {
+  switch (sort) {
+    case 'date':
+      return ' ORDER BY created_at DESC';
+    case 'salary':
+      return ' ORDER BY salary_max DESC, salary_min DESC';
+    case 'company':
+      return ' ORDER BY company ASC';
+    case 'relevance':
+    default:
+      return ' ORDER BY created_at DESC';
+  }
+}
+
+function applySorting(jobs: any[], sort?: string): any[] {
+  if (!sort || sort === 'relevance') {
+    return jobs; // Keep original order for relevance
+  }
+
+  const sortedJobs = [...jobs];
+  
+  switch (sort) {
+    case 'date':
+      return sortedJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    case 'salary':
+      return sortedJobs.sort((a, b) => {
+        const aSalary = a.salary_max || a.salary_min || 0;
+        const bSalary = b.salary_max || b.salary_min || 0;
+        return bSalary - aSalary;
+      });
+    case 'company':
+      return sortedJobs.sort((a, b) => (a.company || '').localeCompare(b.company || ''));
+    default:
+      return sortedJobs;
+  }
+}
+
 async function handleRegularQuery(params: any, db: any) {
-  const { location, seniority, department, remote, sessionId, limit, offset } = params;
+  const { location, seniority, department, remote, employmentType, sort, sessionId, limit, offset } = params;
   
   let whereConditions = ['is_active = 1'];
   let queryParams: any[] = [];
@@ -142,8 +227,19 @@ async function handleRegularQuery(params: any, db: any) {
   }
 
   if (department) {
-    whereConditions.push('department LIKE ?');
-    queryParams.push(`%${department}%`);
+    // Handle multiple departments separated by commas
+    const departments = department.split(',').map((d: string) => d.trim());
+    const departmentConditions = departments.map(() => 'department LIKE ?').join(' OR ');
+    whereConditions.push(`(${departmentConditions})`);
+    departments.forEach((dept: string) => queryParams.push(`%${dept}%`));
+  }
+
+  if (employmentType) {
+    // Handle multiple employment types separated by commas
+    const types = employmentType.split(',').map((t: string) => t.trim().toLowerCase());
+    const typeConditions = types.map(() => 'LOWER(employment_type) = ?').join(' OR ');
+    whereConditions.push(`(${typeConditions})`);
+    types.forEach((type: string) => queryParams.push(type));
   }
 
   if (remote === 'true') {
@@ -179,10 +275,10 @@ async function handleRegularQuery(params: any, db: any) {
       `;
       queryParams.unshift(candidate.id);
     } else {
-      baseQuery += ' ORDER BY created_at DESC';
+      baseQuery += getOrderByClause(sort);
     }
   } else {
-    baseQuery += ' ORDER BY created_at DESC';
+    baseQuery += getOrderByClause(sort);
   }
 
   const countQuery = `
