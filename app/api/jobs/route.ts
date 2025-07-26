@@ -318,7 +318,8 @@ async function handleRegularQuery(params: any, db: any) {
   if (hybrid === 'true') {
     // For hybrid, we might need to check for specific patterns or add a hybrid field
     // For now, assuming hybrid jobs might have "hybrid" in description or title
-    workTypeFilters.push('(LOWER(title) LIKE "%hybrid%" OR LOWER(description) LIKE "%hybrid%")');
+    workTypeFilters.push('(LOWER(title) LIKE ? OR LOWER(description) LIKE ?)');
+    queryParams.push('%hybrid%', '%hybrid%');
   }
   
   if (workTypeFilters.length > 0) {
@@ -531,7 +532,9 @@ async function handleRegularQueryPostgres(params: any) {
     workTypeFilters.push('remote_eligible = false');
   }
   if (hybrid === 'true') {
-    workTypeFilters.push("(LOWER(title) LIKE '%hybrid%' OR LOWER(description) LIKE '%hybrid%')");
+    workTypeFilters.push(`(LOWER(title) ILIKE $${paramIndex} OR LOWER(description) ILIKE $${paramIndex + 1})`);
+    queryValues.push('%hybrid%', '%hybrid%');
+    paramIndex += 2;
   }
   
   if (workTypeFilters.length > 0) {

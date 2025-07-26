@@ -150,15 +150,17 @@ export function JobSearch({ onSearch }: JobSearchProps) {
     }
   };
 
-  const resetUpload = () => {
+  const resetUpload = (skipRefresh = false) => {
     setUploadedFile(null);
     setUploadComplete(false);
     setIsUploading(false);
     setIsResumeDialogOpen(false);
     setIsDragOver(false);
     
-    // Dispatch event to notify other components to refresh
-    window.dispatchEvent(new CustomEvent('uiRefresh'));
+    // Only dispatch refresh event if not skipping (e.g., after successful upload)
+    if (!skipRefresh) {
+      window.dispatchEvent(new CustomEvent('uiRefresh'));
+    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -356,11 +358,8 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                     <button
                       className="w-full px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
                       onClick={() => {
-                        resetUpload();
-                        // Small delay to ensure dialog closes before triggering refresh
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('uiRefresh'));
-                        }, 100);
+                        // Skip refresh to preserve curated results
+                        resetUpload(true);
                       }}
                     >
                       View Curated Jobs

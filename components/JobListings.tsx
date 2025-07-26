@@ -71,20 +71,34 @@ export function JobListings({
       setExpandedJobs(new Set());
       setSavedJobs(new Set());
       
-      // Always reset to default jobs on UI refresh
-      setIsPersonalized(false);
-      setSessionId('');
-      setParsedResumeData(null);
-      fetchDefaultJobs();
+      // Only reset to default jobs if there's no valid session ID
+      // This preserves curated results after resume upload
+      const hasResume = localStorage.getItem('has-uploaded-resume') === 'true';
+      const storedSessionId = localStorage.getItem('career-session-id');
+      
+      if (hasResume && storedSessionId) {
+        // Keep personalized state if we have a valid session
+        if (!isPersonalized) {
+          setSessionId(storedSessionId);
+          setIsPersonalized(true);
+          fetchPersonalizedJobs(storedSessionId);
+        }
+      } else {
+        // Only reset if no session exists
+        setIsPersonalized(false);
+        setSessionId('');
+        setParsedResumeData(null);
+        fetchDefaultJobs();
+      }
     };
 
     // Listen for page visibility changes to refresh UI when page becomes visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // Only refresh if not in personalized mode to avoid disrupting user's personalized results
-        if (!isPersonalized) {
-          handleUIRefresh();
-        }
+        // Don't automatically refresh on visibility change
+        // Users should manually refresh or upload a new resume
+        // This prevents disrupting curated results
+        return;
       }
     };
 
