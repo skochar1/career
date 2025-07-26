@@ -1,10 +1,9 @@
-// lib/resume-parser.ts
-
 import OpenAI from "openai";
 import mammoth from "mammoth";
 
-// DO NOT import pdf-parse at the top!
+// DO NOT import pdf-parse statically! (it must be dynamic for Vercel/serverless)
 
+// Set up OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -34,7 +33,7 @@ export interface ParsedResumeData {
 export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
   let rawText = "";
   try {
-    // 1. Extract text based on mimetype
+    // Extract text based on mimetype
     if (file.mimetype === "application/pdf") {
       try {
         // Dynamically import pdf-parse
@@ -42,6 +41,7 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
         const result = await pdfParse(file.buffer);
         rawText = result.text;
       } catch (e) {
+        console.error("[RESUME] Could not extract text from PDF file", e);
         throw new Error("Could not extract text from PDF file");
       }
     } else if (
@@ -52,6 +52,7 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         rawText = result.value;
       } catch (e) {
+        console.error("[RESUME] Could not extract text from DOCX file", e);
         throw new Error("Could not extract text from DOCX file");
       }
     } else if (file.mimetype === "text/plain") {
@@ -63,18 +64,20 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
       throw new Error("Unsupported file type");
     }
 
-    // 2. Clean up the text
+    // Clean up the text
     rawText = rawText.replace(/\s+/g, " ").trim();
 
-    // 3. If rawText is very short, fail
+    // If rawText is very short, fail
     if (!rawText || rawText.length < 50) {
       throw new Error("Resume content is too short or could not be extracted");
     }
 
-    // 4. Pass text to OpenAI for structure extraction
+    // Pass text to OpenAI for structure extraction
     const parsedData = await parseWithOpenAI(rawText);
+    console.log("[RESUME] Parsed skills:", parsedData.skills, "\nParsed keywords:", parsedData.keywords);
     return { ...parsedData, rawText };
   } catch (error: any) {
+    console.error("[RESUME] OpenAI extraction failed:", error);
     // Fallback: Minimal parsed data, still return something
     return {
       skills: [],
@@ -109,24 +112,6 @@ Please respond with a JSON object containing the following fields:
 7. "workExperience": An array of objects with "company", "position", "duration", and "description" for each job
 
 Make sure the response is valid JSON. If any information is not available, use null or empty arrays as appropriate.
-
-Example response format:
-{
-  "skills": ["JavaScript", "React", "Node.js", "Python"],
-  "keywords": ["JavaScript", "React", "Node.js", "Python", "Web Development", "API", "REST", "Git", "Agile", "Problem Solving", "Team Collaboration", "Frontend", "Backend", "Full-stack", "Database", "MongoDB", "PostgreSQL"],
-  "experienceLevel": "mid",
-  "preferredLocations": ["San Francisco", "Remote"],
-  "summary": "Full-stack developer with 5 years of experience building web applications using modern JavaScript frameworks.",
-  "education": ["B.S. Computer Science - University of California"],
-  "workExperience": [
-    {
-      "company": "Tech Corp",
-      "position": "Software Engineer",
-      "duration": "2020-2023",
-      "description": "Developed web applications using React and Node.js"
-    }
-  ]
-}
 `;
 
   try {
@@ -147,12 +132,10 @@ Example response format:
       max_tokens: 2000,
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("No response from OpenAI");
-    }
-
-    // Parse the JSON response
+    let content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from OpenAI");
+    // Remove code block fencing if present
+    content = content.replace(/```json|```/gi, '').trim();
     const parsedData = JSON.parse(content);
 
     return {
@@ -248,4 +231,3 @@ function extractBasicSkills(text: string): string[] {
 
   return foundSkills;
 }
-

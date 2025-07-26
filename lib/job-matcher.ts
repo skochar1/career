@@ -5,7 +5,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Use PostgreSQL in production, SQLite in development
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
 let dbModule: any;
@@ -15,47 +14,34 @@ if (isProduction) {
   dbModule = require('./database');
 }
 
+function safeJsonParse(str: any, fallback: any = []) {
+  try { return JSON.parse(str || '') || fallback; } catch { return fallback; }
+}
+
 export async function calculateJobMatches(candidateId: number, resumeData: ParsedResumeData) {
   if (isProduction) {
-    // PostgreSQL operations
     await dbModule.initializeDatabase();
-    
-    // Get all active jobs
     const { rows: jobs } = await dbModule.sql`SELECT * FROM jobs WHERE is_active = true`;
-    
-    // Clear existing matches for this candidate
     await dbModule.sql`DELETE FROM job_matches WHERE candidate_id = ${candidateId}`;
-    
-    // Calculate matches for each job
     for (const job of jobs) {
       const matchScore = await calculateSingleJobMatch(resumeData, job);
-      const matchingSkills = findMatchingSkills(resumeData.skills, JSON.parse(job.required_skills || '[]'));
-      
+      const matchingSkills = findMatchingSkills(resumeData.skills, safeJsonParse(job.required_skills));
       await dbModule.sql`
         INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills)
         VALUES (${candidateId}, ${job.id}, ${matchScore}, ${JSON.stringify(matchingSkills)})
       `;
     }
   } else {
-    // SQLite operations
     const db = dbModule.getDatabase();
-    
-    // Get all active jobs
     const jobs = db.prepare('SELECT * FROM jobs WHERE is_active = 1').all() as any[];
-    
-    // Clear existing matches for this candidate
     db.prepare('DELETE FROM job_matches WHERE candidate_id = ?').run(candidateId);
-    
-    // Calculate matches for each job
     const insertMatch = db.prepare(`
       INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills)
       VALUES (?, ?, ?, ?)
     `);
-    
     for (const job of jobs) {
       const matchScore = await calculateSingleJobMatch(resumeData, job);
-      const matchingSkills = findMatchingSkills(resumeData.skills, JSON.parse(job.required_skills || '[]'));
-      
+      const matchingSkills = findMatchingSkills(resumeData.skills, safeJsonParse(job.required_skills));
       insertMatch.run(
         candidateId,
         job.id,
@@ -80,8 +66,8 @@ CANDIDATE PROFILE:
 JOB POSTING:
 - Title: ${job.title}
 - Description: ${job.description}
-- Required Skills: ${JSON.parse(job.required_skills || '[]').join(', ')}
-- Preferred Skills: ${JSON.parse(job.preferred_skills || '[]').join(', ')}
+- Required Skills: ${safeJsonParse(job.required_skills).join(', ')}
+- Preferred Skills: ${safeJsonParse(job.preferred_skills).join(', ')}
 - Seniority Level: ${job.seniority_level}
 - Department: ${job.department}
 - Location: ${job.location}
@@ -96,7 +82,6 @@ Please calculate a match score from 0 to 100 based on:
 
 Respond with ONLY a number between 0 and 100. No explanation needed.
 `;
-
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -115,31 +100,24 @@ Respond with ONLY a number between 0 and 100. No explanation needed.
 
     const scoreText = response.choices[0]?.message?.content?.trim();
     const score = parseFloat(scoreText || '0');
-    
-    // Validate score is between 0 and 100
     return Math.max(0, Math.min(100, isNaN(score) ? 0 : score));
-
   } catch (error) {
     console.error('Error calculating match with OpenAI:', error);
-    // Fallback to basic matching algorithm
     return calculateBasicMatch(resumeData, job);
   }
 }
 
 function calculateBasicMatch(resumeData: ParsedResumeData, job: any): number {
   let score = 0;
-  
-  // Skills matching (60% of score)
-  const jobSkills = JSON.parse(job.required_skills || '[]');
+  const jobSkills = safeJsonParse(job.required_skills);
   const matchingSkills = findMatchingSkills(resumeData.skills, jobSkills);
   const skillsScore = jobSkills.length > 0 ? (matchingSkills.length / jobSkills.length) * 60 : 30;
   score += skillsScore;
-  
-  // Experience level matching (30% of score)
+
   const experienceLevels = ['junior', 'mid', 'senior', 'lead', 'vp', 'executive'];
   const candidateLevel = experienceLevels.indexOf(resumeData.experienceLevel);
   const jobLevel = experienceLevels.indexOf(job.seniority_level);
-  
+
   if (candidateLevel === jobLevel) {
     score += 30;
   } else if (Math.abs(candidateLevel - jobLevel) === 1) {
@@ -147,66 +125,86 @@ function calculateBasicMatch(resumeData: ParsedResumeData, job: any): number {
   } else if (Math.abs(candidateLevel - jobLevel) === 2) {
     score += 10;
   }
-  
-  // Location matching (10% of score)
+
   if (job.remote_eligible) {
     score += 10;
-  } else if (resumeData.preferredLocations?.some(loc => 
-    job.location.toLowerCase().includes(loc.toLowerCase())
-  )) {
+  } else if (
+    resumeData.preferredLocations?.some((loc) =>
+      job.location?.toLowerCase().includes(loc.toLowerCase())
+    )
+  ) {
     score += 10;
   }
-  
+
   return Math.round(score);
 }
 
 function findMatchingSkills(candidateSkills: string[], jobSkills: string[]): string[] {
   const matching: string[] = [];
-  
-  jobSkills.forEach(jobSkill => {
-    candidateSkills.forEach(candidateSkill => {
-      if (candidateSkill.toLowerCase().includes(jobSkill.toLowerCase()) ||
-          jobSkill.toLowerCase().includes(candidateSkill.toLowerCase())) {
+  jobSkills.forEach((jobSkill) => {
+    candidateSkills.forEach((candidateSkill) => {
+      if (
+        candidateSkill.trim().toLowerCase() === jobSkill.trim().toLowerCase() ||
+        candidateSkill.toLowerCase().includes(jobSkill.toLowerCase()) ||
+        jobSkill.toLowerCase().includes(candidateSkill.toLowerCase())
+      ) {
         if (!matching.includes(jobSkill)) {
           matching.push(jobSkill);
         }
       }
     });
   });
-  
   return matching;
 }
 
 export async function getJobRecommendations(sessionId: string, limit: number = 10) {
-  const db = getDatabase();
-  
-  // Get candidate
-  const candidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
-  if (!candidate) {
-    throw new Error('Candidate not found');
+  if (isProduction) {
+    await dbModule.initializeDatabase();
+    // Get candidate
+    const { rows: candidates } = await dbModule.sql`
+      SELECT * FROM candidates WHERE session_id = ${sessionId}
+    `;
+    const candidate = candidates[0];
+    if (!candidate) throw new Error('Candidate not found');
+
+    // Get top matching jobs
+    const { rows: jobs } = await dbModule.sql`
+      SELECT j.*, jm.match_score, jm.matching_skills
+      FROM jobs j
+      INNER JOIN job_matches jm ON j.id = jm.job_id
+      WHERE jm.candidate_id = ${candidate.id} AND j.is_active = true
+      ORDER BY jm.match_score DESC
+      LIMIT ${limit}
+    `;
+
+    return jobs.map((job: any) => ({
+      ...job,
+      required_skills: safeJsonParse(job.required_skills),
+      preferred_skills: safeJsonParse(job.preferred_skills),
+      matching_skills: safeJsonParse(job.matching_skills),
+    }));
+  } else {
+    const db = dbModule.getDatabase();
+    const candidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
+    if (!candidate) throw new Error('Candidate not found');
+    const candidateData = candidate as any;
+    const query = `
+      SELECT 
+        j.*, 
+        jm.match_score,
+        jm.matching_skills
+      FROM jobs j
+      INNER JOIN job_matches jm ON j.id = jm.job_id
+      WHERE jm.candidate_id = ? AND j.is_active = 1
+      ORDER BY jm.match_score DESC
+      LIMIT ?
+    `;
+    const jobs = db.prepare(query).all(candidateData.id, limit) as any[];
+    return jobs.map((job) => ({
+      ...job,
+      required_skills: safeJsonParse(job.required_skills),
+      preferred_skills: safeJsonParse(job.preferred_skills),
+      matching_skills: safeJsonParse(job.matching_skills),
+    }));
   }
-  
-  const candidateData = candidate as any;
-  
-  // Get top matching jobs
-  const query = `
-    SELECT 
-      j.*, 
-      jm.match_score,
-      jm.matching_skills
-    FROM jobs j
-    INNER JOIN job_matches jm ON j.id = jm.job_id
-    WHERE jm.candidate_id = ? AND j.is_active = 1
-    ORDER BY jm.match_score DESC
-    LIMIT ?
-  `;
-  
-  const jobs = db.prepare(query).all(candidateData.id, limit) as (Job & { match_score: number; matching_skills: string })[];
-  
-  return jobs.map(job => ({
-    ...job,
-    required_skills: JSON.parse(job.required_skills || '[]'),
-    preferred_skills: JSON.parse(job.preferred_skills || '[]'),
-    matching_skills: JSON.parse(job.matching_skills || '[]')
-  }));
 }
