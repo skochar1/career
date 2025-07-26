@@ -157,7 +157,7 @@ function findMatchingSkills(candidateSkills: string[], jobSkills: string[]): str
   return matching;
 }
 
-export async function getJobRecommendations(sessionId: string, limit: number = 10) {
+export async function getJobRecommendations(sessionId: string, limit: number = 10, filters?: any) {
   if (isProduction) {
     await dbModule.initializeDatabase();
     // Get candidate
@@ -167,15 +167,55 @@ export async function getJobRecommendations(sessionId: string, limit: number = 1
     const candidate = candidates[0];
     if (!candidate) throw new Error('Candidate not found');
 
-    // Get top matching jobs
-    const { rows: jobs } = await dbModule.sql`
+    // Build WHERE clause with filters
+    let whereConditions = [`jm.candidate_id = ${candidate.id}`, `j.is_active = true`];
+    
+    if (filters) {
+      // Work type filters
+      if (filters.workType?.remote && !filters.workType?.onsite) {
+        whereConditions.push(`j.remote_eligible = 1`);
+      } else if (filters.workType?.onsite && !filters.workType?.remote) {
+        whereConditions.push(`j.remote_eligible = 0`);
+      }
+      
+      // Employment type filter
+      if (filters.employmentType?.length > 0) {
+        const types = filters.employmentType.map((t: string) => `'${t}'`).join(',');
+        whereConditions.push(`j.employment_type IN (${types})`);
+      }
+      
+      // Department filter
+      if (filters.department?.length > 0) {
+        const depts = filters.department.map((d: string) => `'${d}'`).join(',');
+        whereConditions.push(`j.department IN (${depts})`);
+      }
+      
+      // Seniority level filter
+      if (filters.seniorityLevel) {
+        whereConditions.push(`j.seniority_level = '${filters.seniorityLevel}'`);
+      }
+      
+      // Location filter
+      if (filters.location) {
+        whereConditions.push(`j.location ILIKE '%${filters.location}%'`);
+      }
+      
+      // Search filter
+      if (filters.search) {
+        whereConditions.push(`(j.title ILIKE '%${filters.search}%' OR j.description ILIKE '%${filters.search}%' OR j.company ILIKE '%${filters.search}%')`);
+      }
+    }
+
+    // Get top matching jobs with filters
+    const whereClause = whereConditions.join(' AND ');
+    const { rows: jobs } = await dbModule.sql.unsafe(`
       SELECT j.*, jm.match_score, jm.matching_skills
       FROM jobs j
       INNER JOIN job_matches jm ON j.id = jm.job_id
-      WHERE jm.candidate_id = ${candidate.id} AND j.is_active = true
+      WHERE ${whereClause}
       ORDER BY jm.match_score DESC
       LIMIT ${limit}
-    `;
+    `);
 
     return jobs.map((job: any) => ({
       ...job,
@@ -188,6 +228,54 @@ export async function getJobRecommendations(sessionId: string, limit: number = 1
     const candidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
     if (!candidate) throw new Error('Candidate not found');
     const candidateData = candidate as any;
+    
+    // Build WHERE clause with filters
+    let whereConditions = ['jm.candidate_id = ?', 'j.is_active = 1'];
+    let params = [candidateData.id];
+    
+    if (filters) {
+      // Work type filters
+      if (filters.workType?.remote && !filters.workType?.onsite) {
+        whereConditions.push('j.remote_eligible = 1');
+      } else if (filters.workType?.onsite && !filters.workType?.remote) {
+        whereConditions.push('j.remote_eligible = 0');
+      }
+      
+      // Employment type filter
+      if (filters.employmentType?.length > 0) {
+        const placeholders = filters.employmentType.map(() => '?').join(',');
+        whereConditions.push(`j.employment_type IN (${placeholders})`);
+        params.push(...filters.employmentType);
+      }
+      
+      // Department filter
+      if (filters.department?.length > 0) {
+        const placeholders = filters.department.map(() => '?').join(',');
+        whereConditions.push(`j.department IN (${placeholders})`);
+        params.push(...filters.department);
+      }
+      
+      // Seniority level filter
+      if (filters.seniorityLevel) {
+        whereConditions.push('j.seniority_level = ?');
+        params.push(filters.seniorityLevel);
+      }
+      
+      // Location filter
+      if (filters.location) {
+        whereConditions.push('j.location LIKE ?');
+        params.push(`%${filters.location}%`);
+      }
+      
+      // Search filter
+      if (filters.search) {
+        whereConditions.push('(j.title LIKE ? OR j.description LIKE ? OR j.company LIKE ?)');
+        params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+      }
+    }
+    
+    params.push(limit);
+    
     const query = `
       SELECT 
         j.*, 
@@ -195,11 +283,12 @@ export async function getJobRecommendations(sessionId: string, limit: number = 1
         jm.matching_skills
       FROM jobs j
       INNER JOIN job_matches jm ON j.id = jm.job_id
-      WHERE jm.candidate_id = ? AND j.is_active = 1
+      WHERE ${whereConditions.join(' AND ')}
       ORDER BY jm.match_score DESC
       LIMIT ?
     `;
-    const jobs = db.prepare(query).all(candidateData.id, limit) as any[];
+    
+    const jobs = db.prepare(query).all(...params) as any[];
     return jobs.map((job) => ({
       ...job,
       required_skills: safeJsonParse(job.required_skills),

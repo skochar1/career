@@ -71,26 +71,20 @@ export function JobListings({
       setExpandedJobs(new Set());
       setSavedJobs(new Set());
       
-      // Check current state and refresh appropriately
-      const hasResume = localStorage.getItem('has-uploaded-resume') === 'true';
-      const storedSessionId = localStorage.getItem('career-session-id');
-      
-      if (hasResume && storedSessionId) {
-        setSessionId(storedSessionId);
-        setIsPersonalized(true);
-        fetchPersonalizedJobs(storedSessionId);
-      } else {
-        setIsPersonalized(false);
-        setSessionId('');
-        setParsedResumeData(null);
-        fetchDefaultJobs();
-      }
+      // Always reset to default jobs on UI refresh
+      setIsPersonalized(false);
+      setSessionId('');
+      setParsedResumeData(null);
+      fetchDefaultJobs();
     };
 
     // Listen for page visibility changes to refresh UI when page becomes visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        handleUIRefresh();
+        // Only refresh if not in personalized mode to avoid disrupting user's personalized results
+        if (!isPersonalized) {
+          handleUIRefresh();
+        }
       }
     };
 
@@ -107,10 +101,13 @@ export function JobListings({
 
   // Refetch jobs when filters, sorting, or search change
   useEffect(() => {
-    if (!isPersonalized) {
+    if (isPersonalized && sessionId) {
+      // Refetch personalized jobs with new filters
+      fetchPersonalizedJobs(sessionId);
+    } else if (!isPersonalized) {
       fetchDefaultJobs(1);
     }
-  }, [externalFilters, externalSortBy, searchQuery, locationQuery, isPersonalized]);
+  }, [externalFilters, externalSortBy, searchQuery, locationQuery, isPersonalized, sessionId]);
 
   const buildQueryParams = (page = 1) => {
     const params = new URLSearchParams();
@@ -188,10 +185,57 @@ export function JobListings({
     }
   };
 
+  const buildPersonalizedQueryParams = (sessionId: string) => {
+    const params = new URLSearchParams();
+    params.set('sessionId', sessionId);
+    params.set('limit', '20');
+    
+    // Add search parameters
+    if (searchQuery?.trim()) {
+      params.set('search', searchQuery.trim());
+    }
+    
+    // Add filters
+    const currentFilters = externalFilters || filters;
+    if (currentFilters) {
+      if (currentFilters.workType?.length > 0) {
+        if (currentFilters.workType.includes('Remote')) {
+          params.set('remote', 'true');
+        }
+        if (currentFilters.workType.includes('On-site')) {
+          params.set('onsite', 'true');
+        }
+        if (currentFilters.workType.includes('Hybrid')) {
+          params.set('hybrid', 'true');
+        }
+      }
+      if (currentFilters.jobType?.length > 0) {
+        params.set('employment_type', currentFilters.jobType.join(','));
+      }
+      if (currentFilters.department?.length > 0) {
+        params.set('department', currentFilters.department.join(','));
+      }
+      if (currentFilters.seniority) {
+        params.set('seniority_level', currentFilters.seniority.toLowerCase());
+      }
+      if (currentFilters.location) {
+        params.set('location', currentFilters.location);
+      }
+    }
+    
+    // Add location from search if not in filters
+    if (locationQuery?.trim() && !currentFilters?.location) {
+      params.set('location', locationQuery.trim());
+    }
+    
+    return params.toString();
+  };
+
   const fetchPersonalizedJobs = async (sessionId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/recommendations?sessionId=${sessionId}&limit=20`);
+      const queryString = buildPersonalizedQueryParams(sessionId);
+      const res = await fetch(`/api/recommendations?${queryString}`);
       const data = await res.json();
       
       if (data.success && data.recommendations) {

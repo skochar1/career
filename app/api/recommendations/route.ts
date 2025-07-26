@@ -14,7 +14,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const recommendations = await getJobRecommendations(sessionId, limit);
+    // Extract filters from search params
+    const filters = {
+      workType: {
+        remote: searchParams.get('remote') === 'true',
+        onsite: searchParams.get('onsite') === 'true',
+        hybrid: searchParams.get('hybrid') === 'true',
+      },
+      employmentType: searchParams.get('employment_type')?.split(',').filter(Boolean),
+      department: searchParams.get('department')?.split(',').filter(Boolean),
+      seniorityLevel: searchParams.get('seniority_level'),
+      location: searchParams.get('location'),
+      search: searchParams.get('search'),
+    };
+
+    const recommendations = await getJobRecommendations(sessionId, limit, filters);
 
     return NextResponse.json({
       success: true,
