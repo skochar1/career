@@ -1,9 +1,13 @@
 import OpenAI from 'openai';
-import pdfParse from 'pdf-parse';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Check if API key is configured
+if (!process.env.OPENAI_API_KEY) {
+  console.error('OPENAI_API_KEY environment variable is not set!');
+}
 
 interface ResumeFile {
   buffer: Buffer;
@@ -35,9 +39,8 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
     
     if (file.mimetype === 'application/pdf') {
       console.log('Processing PDF file...');
-      const pdfData = await pdfParse(file.buffer);
-      extractedText = pdfData.text;
-      console.log('PDF text extracted, length:', extractedText.length);
+      // For now, return a simple error for PDF files - we'll implement this later
+      throw new Error('PDF parsing temporarily disabled. Please upload a text file for testing.');
     } else if (file.mimetype === 'text/plain') {
       console.log('Processing text file...');
       extractedText = file.buffer.toString('utf-8');

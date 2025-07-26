@@ -1,0 +1,42 @@
+ALEX JOHNSON
+Software Engineer
+alex.johnson@email.com | (555) 123-4567 | San Francisco, CA
+
+SUMMARY
+Experienced full-stack software engineer with 4 years of experience building scalable web applications using modern JavaScript frameworks. Passionate about clean code, agile development, and mentoring junior developers.
+
+TECHNICAL SKILLS
+• Programming Languages: JavaScript, TypeScript, Python, Java
+• Frontend: React, Next.js, Vue.js, HTML5, CSS3, Tailwind CSS
+• Backend: Node.js, Express.js, REST APIs, GraphQL
+• Databases: PostgreSQL, MongoDB, Redis
+• Cloud & DevOps: AWS, Docker, Kubernetes, Git, CI/CD
+• Tools: Figma, Jira, Slack, VS Code
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | TechStart Inc. | 2022 - Present
+• Led development of customer-facing web application serving 50k+ users
+• Implemented microservices architecture reducing response times by 40%
+• Mentored 2 junior developers and conducted code reviews
+• Technologies: React, Node.js, PostgreSQL, AWS, Docker
+
+Software Developer | Digital Solutions Co. | 2020 - 2022  
+• Built responsive web applications using React and TypeScript
+• Collaborated with design team to implement pixel-perfect UIs
+• Optimized database queries improving performance by 30%
+• Technologies: React, TypeScript, Express.js, MongoDB
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of California, Berkeley | 2016 - 2020
+GPA: 3.7/4.0
+
+PROJECT HIGHLIGHTS
+• E-commerce Platform: Built full-stack shopping platform with payment integration
+• Task Management App: Created React-based productivity tool with real-time updates
+• Open Source Contributor: Active contributor to popular JavaScript libraries
+
+CERTIFICATIONS
+• AWS Certified Developer Associate (2023)
+• MongoDB Certified Developer (2022)

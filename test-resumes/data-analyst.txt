@@ -1,0 +1,70 @@
+MICHAEL CHEN
+Data Analyst
+michael.chen@email.com | (555) 456-7890 | Seattle, WA | Remote Work Preferred
+
+OBJECTIVE
+Detail-oriented data analyst with 3 years of experience transforming complex datasets into actionable business insights. Proficient in statistical analysis, data visualization, and machine learning techniques.
+
+TECHNICAL SKILLS
+Programming & Analytics:
+• Python (pandas, NumPy, scikit-learn, matplotlib, seaborn)
+• SQL (PostgreSQL, MySQL, SQLite)
+• R for statistical analysis
+• Excel (Advanced formulas, pivot tables, VBA)
+
+Data Visualization & BI Tools:
+• Tableau (Certified)
+• Power BI
+• Looker
+• Jupyter Notebooks
+
+Machine Learning & Statistics:
+• Regression analysis, classification, clustering
+• Statistical hypothesis testing
+• Predictive modeling
+• A/B testing and experimental design
+
+Cloud & Databases:
+• AWS (S3, Redshift, EC2)
+• Google Cloud Platform
+• Apache Spark for big data processing
+
+WORK EXPERIENCE
+
+Data Analyst | DataDriven Solutions | 2022 - Present
+• Analyzed customer behavior data to identify $500k revenue opportunities
+• Built automated reporting dashboards reducing manual work by 60%
+• Developed predictive models with 85% accuracy for customer churn
+• Collaborated with product teams to implement A/B testing frameworks
+• Created executive-level reports and presentations for C-suite stakeholders
+
+Junior Data Analyst | Analytics Corp | 2021 - 2022
+• Processed and cleaned large datasets (10M+ records) for analysis
+• Generated weekly business intelligence reports for marketing team
+• Assisted in building ETL pipelines for data warehouse integration
+• Performed statistical analysis to support business decision making
+
+Data Intern | Research Institute | Summer 2021
+• Conducted exploratory data analysis on survey data (5,000+ responses)
+• Created data visualizations using Python and Tableau
+• Assisted senior analysts with market research projects
+
+EDUCATION
+Master of Science in Data Science
+University of Washington | 2020 - 2021
+Relevant Coursework: Machine Learning, Statistical Methods, Database Systems
+
+Bachelor of Science in Mathematics
+University of California, San Diego | 2016 - 2020
+Minor in Computer Science | GPA: 3.8/4.0
+
+PROJECTS
+• Customer Segmentation Analysis: Used clustering algorithms to identify distinct customer groups
+• Sales Forecasting Model: Built time series model predicting revenue with 92% accuracy
+• Web Analytics Dashboard: Created real-time dashboard tracking website performance metrics
+
+CERTIFICATIONS
+• Tableau Desktop Certified Associate (2023)
+• Google Analytics Individual Qualification (2022)
+• AWS Cloud Practitioner (2022)
+• Microsoft Power BI Data Analyst Associate (2021)
