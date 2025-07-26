@@ -308,7 +308,7 @@ async function handleRegularQuery(params: any, db: any) {
   }
 
   // Handle work type filters
-  const workTypeFilters = [];
+  const workTypeFilters: string[] = [];
   if (remote === 'true') {
     workTypeFilters.push('remote_eligible = 1');
   }
@@ -523,7 +523,7 @@ async function handleRegularQueryPostgres(params: any) {
     paramIndex += types.length;
   }
 
-  const workTypeFilters = [];
+  const workTypeFilters: string[] = [];
   if (remote === 'true') {
     workTypeFilters.push('remote_eligible = true');
   }
