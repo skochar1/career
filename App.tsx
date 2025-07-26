@@ -1,4 +1,4 @@
-import "../styles/global.css";
+import "./styles/global.css";
 
 import { JobSearch } from "./components/JobSearch";
 import { FilterSidebar } from "./components/FilterSidebar";
