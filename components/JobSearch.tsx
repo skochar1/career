@@ -112,7 +112,11 @@ export function JobSearch({ onSearch }: JobSearchProps) {
             console.error('Failed to parse error response:', e);
             // If JSON parsing fails, try to get some info from the response
             console.error('Response status:', response.status);
-            console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+            const headersObj: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+              headersObj[key] = value;
+            });
+            console.error('Response headers:', headersObj);
           }
           throw new Error(`Server error (${response.status}): ${errorMessage}`);
         }
