@@ -335,3 +335,16 @@ Cache invalidated for session: test_ses...
 Starting job matching calculation
 Job matching calculation completed
  POST /api/upload-resume 200 in 44163ms
+ ✓ Compiled in 2.6s (963 modules)
+ GET / 200 in 394ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 692ms (954 modules)
+ GET /_next/static/css/app/layout.css?v=1753595533206 404 in 969ms
+ GET /_next/static/chunks/main-app.js?v=1753595533206 404 in 903ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 902ms
+ ✓ Compiled /manifest.webmanifest in 188ms (515 modules)
+ GET /manifest.webmanifest 200 in 346ms
+ GET /manifest.webmanifest 200 in 220ms
+ GET /_next/static/css/app/layout.css?v=1753595533206 404 in 224ms
+ ⨯ Module not found: Error: Can't resolve 'next-flight-client-entry-loader' in '/Users/shreyakochar/career'
+ ✓ Compiled in 1512ms (963 modules)

@@ -412,7 +412,7 @@ export function JobListings({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-0 py-4 gap-4">
         <div className="text-lg sm:text-xl font-medium text-gray-500">
           {isPersonalized 
-            ? `${jobs.length} personalized job recommendations` 
+            ? `Showing ${jobs.length} of ${totalJobs} curated results` 
             : `Showing ${jobs.length} of ${totalJobs} jobs`
           }
         </div>
