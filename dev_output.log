@@ -128,3 +128,4 @@ Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScor
  GET /api/jobs?page=1&limit=5 200 in 6ms
  GET / 200 in 418ms
  ✓ Compiled in 1390ms (963 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shreyakochar/career/.next/cache/webpack/server-development/5.pack.gz_' -> '/Users/shreyakochar/career/.next/cache/webpack/server-development/5.pack.gz'
