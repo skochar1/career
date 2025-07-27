@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseResume } from '../../../lib/resume-parser';
 import { analyzeResumeWithAI } from '../../../lib/ai-resume-analyzer';
 import { calculateJobMatches } from '../../../lib/job-matcher';
+import { matchCache } from '../../../lib/match-cache';
 
 // Use PostgreSQL in production, SQLite in development
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
@@ -163,6 +164,10 @@ export async function POST(request: NextRequest) {
         candidateId = Number(result.lastInsertRowid);
       }
     }
+
+    // Invalidate cache for this session when new resume is uploaded
+    matchCache.invalidateSession(sessionId);
+    console.log('Cache invalidated for session:', sessionId.substring(0, 8) + '...');
 
     // Calculate job matches
     console.log('Starting job matching calculation');

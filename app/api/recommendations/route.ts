@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobRecommendations } from '../../../lib/job-matcher';
 import { aiJobMatcher } from '../../../lib/ai-job-matcher';
+import { optimizedAIJobMatcher } from '../../../lib/optimized-ai-job-matcher';
 
 // Use PostgreSQL in production, SQLite in development
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
@@ -120,12 +121,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Use AI job matcher if enhanced data is available
+    // Use optimized AI job matcher if enhanced data is available
     if (enhancedResumeData && process.env.OPENAI_API_KEY) {
       try {
-        const aiResults = await aiJobMatcher.generateJobMatches(
+        const aiResults = await optimizedAIJobMatcher.generateJobMatches(
           enhancedResumeData,
           filteredJobs,
+          sessionId,
           limit
         );
 
