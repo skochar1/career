@@ -50,19 +50,17 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
       The system will perform basic analysis and you can refine your profile manually.
       `;
       
-      // Only attempt pdf-parse if we're not in a problematic environment
-      const skipPDFParse = process.env.VERCEL || process.env.NODE_ENV === 'production';
-      if (!skipPDFParse) {
-        try {
-          const pdfParse = (await import("pdf-parse")).default;
-          const result = await pdfParse(file.buffer);
-          if (result.text && result.text.trim().length > 50) {
-            rawText = result.text;
-            console.log("[RESUME] Successfully extracted text from PDF");
-          }
-        } catch (pdfError: any) {
-          console.warn("[RESUME] PDF parsing failed, using fallback text:", pdfError?.message || pdfError);
+      // Try PDF parsing in all environments, but handle errors gracefully
+      try {
+        const pdfParse = (await import("pdf-parse")).default;
+        const result = await pdfParse(file.buffer);
+        if (result.text && result.text.trim().length > 50) {
+          rawText = result.text;
+          console.log("[RESUME] Successfully extracted text from PDF");
         }
+      } catch (pdfError: any) {
+        console.warn("[RESUME] PDF parsing failed, using fallback text:", pdfError?.message || pdfError);
+        // Keep the fallback text we set above
       }
     } else if (
       file.mimetype ===

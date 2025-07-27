@@ -56,6 +56,7 @@ export function JobListings({
   useEffect(() => {
     // Always start with default jobs on page load
     // Only switch to personalized when explicitly triggered by resume upload
+    console.log('JobListings: Initial useEffect triggered, calling fetchDefaultJobs');
     fetchDefaultJobs().catch(error => {
       console.error('Error fetching default jobs on mount:', error);
       setJobs([]);
@@ -199,9 +200,11 @@ export function JobListings({
   };
 
   const fetchDefaultJobs = async (page = 1) => {
+    console.log('fetchDefaultJobs called with page:', page);
     if (page === 1) setLoading(true);
     try {
       const queryString = buildQueryParams(page);
+      console.log('fetchDefaultJobs query string:', queryString);
       const res = await fetch(`/api/jobs?${queryString}`);
       
       if (!res.ok) {
@@ -214,6 +217,7 @@ export function JobListings({
       }
       
       const data = await res.json();
+      console.log('fetchDefaultJobs received data:', data.jobs?.length, 'jobs');
       
       if (page === 1) {
         setJobs(data.jobs || []);

@@ -17,3 +17,48 @@
  GET /api/jobs 200 in 1057ms
  ✓ Compiled in 289ms (324 modules)
  ✓ Compiled in 606ms (324 modules)
+ ○ Compiling /api/upload-resume ...
+ ✓ Compiled /api/upload-resume in 1750ms (914 modules)
+Starting resume text extraction for file: test-resume.txt Size: 87 Type: text/plain
+[RESUME] Parsed skills: [ 'JavaScript', 'Python', 'React' ] 
+Parsed keywords: [ 'JavaScript', 'Python', 'React', '5 years experience' ]
+Starting enhanced AI resume analysis
+Enhanced AI resume analysis completed successfully
+Cache invalidated for session: test-ses...
+Starting job matching calculation
+Job matching calculation completed
+ POST /api/upload-resume 200 in 48129ms
+ ✓ Compiled /api/recommendations in 300ms (917 modules)
+Starting optimized AI job matching: { jobsCount: 22, sessionId: 'test-ses...' }
+Generating new candidate embedding
+Cache stats: 0 hits, 22 misses
+Processing AI analysis batch 1/3
+Processing AI analysis batch 2/3
+Processing AI analysis batch 3/3
+Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScore: 42 }
+ GET /api/recommendations?sessionId=test-session-123 200 in 10817ms
+ ✓ Compiled / in 134ms (558 modules)
+ GET / 200 in 555ms
+ GET / 200 in 65ms
+ ✓ Compiled in 1562ms (723 modules)
+ ✓ Compiled in 1356ms (723 modules)
+ GET / 200 in 320ms
+ ✓ Compiled in 331ms (324 modules)
+ GET / 200 in 207ms
+ ○ Compiling /api/jobs ...
+ ✓ Compiled /_not-found in 1303ms (876 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /api/jobs?page=1&limit=5 200 in 1623ms
+ GET /manifest.webmanifest 200 in 1771ms
+ GET /_next/static/webpack/e34e5acb58affebd.webpack.hot-update.json 404 in 1174ms
+ GET /api/jobs?page=1&limit=5 200 in 35ms
+ GET / 200 in 296ms
+ GET /manifest.webmanifest 200 in 18ms
+ GET /api/jobs?page=1&limit=5 200 in 17ms
+ GET /api/jobs?page=1&limit=5 200 in 10ms
+ GET /api/jobs?page=1&limit=5 200 in 7ms
+ ○ Compiling /api/upload-resume ...
+ ✓ Compiled /api/upload-resume in 4.2s (930 modules)
+Starting resume text extraction for file: data-analyst.txt Size: 2736 Type: text/plain
+ GET / 200 in 617ms
+ GET /manifest.webmanifest 200 in 24ms
