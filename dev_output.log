@@ -145,3 +145,5 @@ Starting job matching calculation
  POST /api/upload-resume 200 in 20691ms
 Job matching calculation completed
  ✓ Compiled in 516ms (963 modules)
+ ✓ Compiled in 1520ms (963 modules)
+ ✓ Compiled in 630ms (963 modules)

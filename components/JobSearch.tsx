@@ -78,12 +78,9 @@ export function JobSearch({ onSearch }: JobSearchProps) {
       setIsUploading(true);
       
       try {
-        // Generate or get session ID
-        let sessionId = localStorage.getItem('career-session-id');
-        if (!sessionId) {
-          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
-          localStorage.setItem('career-session-id', sessionId);
-        }
+        // Generate new session ID for each upload to ensure fresh analysis
+        const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('career-session-id', sessionId);
         
         const formData = new FormData();
         formData.append('resume', uploadedFile);
@@ -375,13 +372,10 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                     <button
                       className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium"
                       onClick={() => {
-                        // Clear resume data and reset to allow new upload
-                        localStorage.removeItem('has-uploaded-resume');
-                        localStorage.removeItem('career-session-id');
+                        // Only reset upload form state, keep curated jobs until new upload completes
                         resetUpload();
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('uiRefresh'));
-                        }, 100);
+                        // Don't clear localStorage or trigger UI refresh yet
+                        // This preserves curated jobs until a new resume is actually processed
                       }}
                     >
                       Upload Another Resume
