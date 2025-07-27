@@ -54,7 +54,11 @@ export function JobListings({
   useEffect(() => {
     // Always start with default jobs on page load
     // Only switch to personalized when explicitly triggered by resume upload
-    fetchDefaultJobs();
+    fetchDefaultJobs().catch(error => {
+      console.error('Error fetching default jobs on mount:', error);
+      setJobs([]);
+      setLoading(false);
+    });
 
     // Listen for resume upload events
     const handleResumeUpload = (event: CustomEvent) => {
@@ -118,10 +122,18 @@ export function JobListings({
     let isMounted = true;
     
     const loadJobs = async () => {
-      if (isPersonalized && sessionId) {
-        if (isMounted) await fetchPersonalizedJobs(sessionId);
-      } else if (!isPersonalized) {
-        if (isMounted) await fetchDefaultJobs(1);
+      try {
+        if (isPersonalized && sessionId) {
+          if (isMounted) await fetchPersonalizedJobs(sessionId);
+        } else if (!isPersonalized) {
+          if (isMounted) await fetchDefaultJobs(1);
+        }
+      } catch (error) {
+        console.error('Error loading jobs in useEffect:', error);
+        if (isMounted) {
+          setJobs([]);
+          setLoading(false);
+        }
       }
     };
     

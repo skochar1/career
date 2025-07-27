@@ -52,15 +52,37 @@ export class AIJobMatcher {
     limit: number = 20
   ): Promise<JobMatchingResult> {
     try {
+      console.log('Starting AI job matching for candidate:', {
+        experienceLevel: candidateData.experienceLevel,
+        skillsCount: candidateData.skills.length,
+        jobsCount: jobs.length
+      });
+
       // Generate embeddings for candidate profile
       const candidateEmbedding = await this.getCandidateEmbedding(candidateData);
+      console.log('Generated candidate embedding, length:', candidateEmbedding.length);
 
-      // Process jobs in parallel for efficiency
-      const jobMatchPromises = jobs.map(job => 
-        this.analyzeJobMatch(candidateData, job, candidateEmbedding)
-      );
+      // Process jobs in parallel but limit concurrency to avoid rate limits
+      const batchSize = 5;
+      const jobMatches: AIJobMatch[] = [];
+      
+      for (let i = 0; i < jobs.length; i += batchSize) {
+        const batch = jobs.slice(i, i + batchSize);
+        console.log(`Processing job batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(jobs.length / batchSize)}`);
+        
+        const batchPromises = batch.map(job => 
+          this.analyzeJobMatch(candidateData, job, candidateEmbedding)
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        jobMatches.push(...batchResults);
+      }
 
-      const jobMatches = await Promise.all(jobMatchPromises);
+      console.log('Completed job matching, scores range:', {
+        min: Math.min(...jobMatches.map(m => m.matchScore)),
+        max: Math.max(...jobMatches.map(m => m.matchScore)),
+        average: Math.round(jobMatches.reduce((sum, m) => sum + m.matchScore, 0) / jobMatches.length)
+      });
 
       // Sort by combined score (semantic similarity + AI analysis)
       const sortedMatches = jobMatches
@@ -156,7 +178,19 @@ export class AIJobMatcher {
     const magnitude1 = Math.sqrt(embedding1.reduce((sum, a) => sum + a * a, 0));
     const magnitude2 = Math.sqrt(embedding2.reduce((sum, a) => sum + a * a, 0));
     
-    return dotProduct / (magnitude1 * magnitude2);
+    if (magnitude1 === 0 || magnitude2 === 0) return 0;
+    
+    const cosineSimilarity = dotProduct / (magnitude1 * magnitude2);
+    
+    // Normalize from [-1, 1] to [0, 1] range
+    const normalizedSimilarity = (cosineSimilarity + 1) / 2;
+    
+    console.log('Semantic similarity calculation:', {
+      cosineSimilarity: cosineSimilarity.toFixed(3),
+      normalizedSimilarity: normalizedSimilarity.toFixed(3)
+    });
+    
+    return normalizedSimilarity;
   }
 
   private async analyzeJobMatch(
@@ -172,9 +206,21 @@ export class AIJobMatcher {
     const aiAnalysis = await this.getAIJobAnalysis(candidateData, job);
 
     // Calculate combined match score (semantic + AI analysis)
+    // semanticSimilarity: 0-1, aiAnalysis.matchScore: 0-100
+    // Weight: 40% semantic similarity + 60% AI analysis
+    const semanticWeight = 0.4;
+    const aiWeight = 0.6;
+    
     const matchScore = Math.round(
-      (semanticSimilarity * 30 + aiAnalysis.matchScore * 0.7) * 100
+      (semanticSimilarity * semanticWeight + (aiAnalysis.matchScore / 100) * aiWeight) * 100
     );
+
+    console.log('Match score calculation:', {
+      jobTitle: job.title,
+      semanticSimilarity: semanticSimilarity.toFixed(3),
+      aiMatchScore: aiAnalysis.matchScore,
+      finalMatchScore: matchScore
+    });
 
     // Analyze salary alignment
     const salaryAlignment = this.analyzeSalaryAlignment(
@@ -201,8 +247,9 @@ export class AIJobMatcher {
   }
 
   private async getAIJobAnalysis(candidateData: EnhancedResumeData, job: Job) {
-    const prompt = `
-Analyze the match between this candidate and job:
+    try {
+      const prompt = `
+Analyze the match between this candidate and job. Be realistic and critical in your assessment.
 
 CANDIDATE:
 - Experience: ${candidateData.experienceLevel} (${candidateData.careerProgression?.yearsOfExperience || 0} years)
@@ -217,39 +264,130 @@ JOB:
 - Required Skills: ${job.required_skills.join(', ')}
 - Description: ${job.description.substring(0, 400)}...
 
-Provide a detailed analysis with:
-1. Match score (0-100)
+Provide a realistic analysis with:
+1. Match score (0-100) - be critical, most jobs should NOT be above 80
 2. Explanation of fit
-3. Matching skills
-4. Missing skills
+3. Matching skills (only those that truly match)
+4. Missing skills (skills required but not possessed)
 5. Specific recommendations
 
-Return JSON only.
+Return ONLY valid JSON in this format:
+{
+  "matchScore": 45,
+  "explanation": "Detailed explanation here...",
+  "matchingSkills": ["skill1", "skill2"],
+  "missingSkills": ["skill3", "skill4"],
+  "recommendations": ["recommendation1", "recommendation2"]
+}
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert job matching analyst. Provide precise, actionable insights."
-        },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 1000,
-    });
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a critical job matching analyst. Most candidates will NOT be perfect matches. Be realistic with scores - very few jobs should score above 80. A good match is 60-75, excellent match is 75-85, perfect match is 85+."
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
 
-    const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
-    const result = JSON.parse(content || '{}');
+      const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
+      
+      if (!content) {
+        console.warn('No content from OpenAI for job analysis');
+        return this.getFallbackAnalysis(candidateData, job);
+      }
 
+      const result = JSON.parse(content);
+
+      // Validate the match score is reasonable
+      if (typeof result.matchScore !== 'number' || result.matchScore > 100 || result.matchScore < 0) {
+        console.warn('Invalid match score from AI:', result.matchScore);
+        result.matchScore = this.calculateBasicMatchScore(candidateData, job);
+      }
+
+      console.log('AI Analysis result:', {
+        jobTitle: job.title,
+        aiMatchScore: result.matchScore,
+        explanation: result.explanation?.substring(0, 100) + '...'
+      });
+
+      return {
+        matchScore: result.matchScore,
+        explanation: result.explanation || 'No detailed explanation available',
+        matchingSkills: Array.isArray(result.matchingSkills) ? result.matchingSkills : [],
+        missingSkills: Array.isArray(result.missingSkills) ? result.missingSkills : [],
+        recommendations: Array.isArray(result.recommendations) ? result.recommendations : []
+      };
+    } catch (error) {
+      console.error('AI job analysis failed:', error);
+      return this.getFallbackAnalysis(candidateData, job);
+    }
+  }
+
+  private getFallbackAnalysis(candidateData: EnhancedResumeData, job: Job) {
+    const matchScore = this.calculateBasicMatchScore(candidateData, job);
+    
     return {
-      matchScore: result.matchScore || 0,
-      explanation: result.explanation || '',
-      matchingSkills: Array.isArray(result.matchingSkills) ? result.matchingSkills : [],
-      missingSkills: Array.isArray(result.missingSkills) ? result.missingSkills : [],
-      recommendations: Array.isArray(result.recommendations) ? result.recommendations : []
+      matchScore,
+      explanation: `Basic compatibility analysis based on skill overlap and experience level. Score: ${matchScore}%`,
+      matchingSkills: this.findMatchingSkills(candidateData.skills, job.required_skills),
+      missingSkills: this.findMissingSkills(candidateData.skills, job.required_skills),
+      recommendations: ['Consider developing the missing skills listed above']
     };
+  }
+
+  private calculateBasicMatchScore(candidateData: EnhancedResumeData, job: Job): number {
+    // Basic scoring based on skill overlap and experience level
+    const skillsOverlap = this.calculateSkillsOverlap(candidateData.skills, job.required_skills);
+    const levelAlignment = this.getLevelAlignment(candidateData.experienceLevel, job.seniority_level);
+    
+    // Base score from skill overlap (0-60 points)
+    const skillScore = skillsOverlap * 60;
+    
+    // Experience level bonus/penalty (-20 to +20 points)  
+    const experienceScore = Math.max(-20, Math.min(20, levelAlignment));
+    
+    // Final score with some randomness to avoid all same scores
+    const baseScore = skillScore + experienceScore + 20; // +20 base points
+    const finalScore = Math.max(5, Math.min(85, baseScore + Math.random() * 10 - 5));
+    
+    return Math.round(finalScore);
+  }
+
+  private findMatchingSkills(candidateSkills: string[], requiredSkills: string[]): string[] {
+    const candidateSkillsLower = candidateSkills.map(s => s.toLowerCase());
+    const matchingSkills: string[] = [];
+    
+    requiredSkills.forEach(requiredSkill => {
+      if (candidateSkillsLower.some(candidateSkill => 
+        candidateSkill.includes(requiredSkill.toLowerCase()) || 
+        requiredSkill.toLowerCase().includes(candidateSkill)
+      )) {
+        matchingSkills.push(requiredSkill);
+      }
+    });
+    
+    return matchingSkills;
+  }
+
+  private findMissingSkills(candidateSkills: string[], requiredSkills: string[]): string[] {
+    const candidateSkillsLower = candidateSkills.map(s => s.toLowerCase());
+    const missingSkills: string[] = [];
+    
+    requiredSkills.forEach(requiredSkill => {
+      if (!candidateSkillsLower.some(candidateSkill => 
+        candidateSkill.includes(requiredSkill.toLowerCase()) || 
+        requiredSkill.toLowerCase().includes(candidateSkill)
+      )) {
+        missingSkills.push(requiredSkill);
+      }
+    });
+    
+    return missingSkills;
   }
 
   private analyzeSalaryAlignment(
