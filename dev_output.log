@@ -62,3 +62,67 @@ Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScor
 Starting resume text extraction for file: data-analyst.txt Size: 2736 Type: text/plain
  GET / 200 in 617ms
  GET /manifest.webmanifest 200 in 24ms
+[RESUME] Parsed skills: [
+  'Python',       'pandas',
+  'NumPy',        'scikit-learn',
+  'matplotlib',   'seaborn',
+  'SQL',          'PostgreSQL',
+  'MySQL',        'SQLite',
+  'R',            'Excel',
+  'Tableau',      'Power BI',
+  'Looker',       'Jupyter Notebooks',
+  'AWS',          'Google Cloud Platform',
+  'Apache Spark'
+] 
+Parsed keywords: [
+  'data analysis',
+  'statistical analysis',
+  'data visualization',
+  'machine learning',
+  'predictive modeling',
+  'A/B testing',
+  'cloud computing',
+  'big data'
+]
+Starting enhanced AI resume analysis
+Enhanced AI resume analysis completed successfully
+Cache invalidated for session: session_...
+Starting job matching calculation
+Job matching calculation completed
+ POST /api/upload-resume 200 in 55866ms
+ ✓ Compiled /api/recommendations in 331ms (928 modules)
+Starting optimized AI job matching: { jobsCount: 22, sessionId: 'session_...' }
+Generating new candidate embedding
+ GET / 200 in 175ms
+ GET /manifest.webmanifest 200 in 12ms
+Cache stats: 0 hits, 22 misses
+Processing AI analysis batch 1/3
+Processing AI analysis batch 2/3
+Processing AI analysis batch 3/3
+Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScore: 40 }
+ GET /api/recommendations?sessionId=session_1753555104216_pfhv3qpqt&limit=50 200 in 12211ms
+Starting optimized AI job matching: { jobsCount: 22, sessionId: 'session_...' }
+Using cached candidate embedding
+Cache stats: 22 hits, 0 misses
+Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScore: 40 }
+ GET /api/recommendations?sessionId=session_1753555104216_pfhv3qpqt&limit=50 200 in 8ms
+ ✓ Compiled in 585ms (324 modules)
+ GET / 200 in 118ms
+ GET /manifest.webmanifest 200 in 13ms
+ ✓ Compiled in 301ms (324 modules)
+ ⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1994ms (1057 modules)
+ GET / 500 in 2882ms
+ GET / 200 in 243ms
+ GET / 200 in 58ms
+ GET / 200 in 410ms
+ GET /manifest.webmanifest 200 in 25ms
+ ○ Compiling /api/jobs ...
+ ✓ Compiled /api/jobs in 921ms (741 modules)
+ GET /api/jobs?page=1&limit=5 200 in 1040ms
+ GET /api/jobs?page=1&limit=5 200 in 7ms
+ GET /api/jobs?page=1&limit=5 200 in 6ms
