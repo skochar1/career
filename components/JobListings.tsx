@@ -50,6 +50,8 @@ export function JobListings({
   const [parsedResumeData, setParsedResumeData] = useState<any>(null);
   const [sortBy, setSortBy] = useState<string>('relevance');
   const [filters, setFilters] = useState<any>(null);
+  const [allPersonalizedJobs, setAllPersonalizedJobs] = useState<any[]>([]);
+  const [personalizedCurrentPage, setPersonalizedCurrentPage] = useState(1);
 
   useEffect(() => {
     // Always start with default jobs on page load
@@ -239,7 +241,7 @@ export function JobListings({
   const buildPersonalizedQueryParams = (sessionId: string) => {
     const params = new URLSearchParams();
     params.set('sessionId', sessionId);
-    params.set('limit', '20');
+    params.set('limit', '50'); // Get more jobs to enable pagination
     
     // Add search parameters
     if (searchQuery?.trim()) {
@@ -300,9 +302,18 @@ export function JobListings({
       const data = await res.json();
       
       if (data.success && data.recommendations) {
-        setJobs(data.recommendations);
-        setTotalJobs(data.count);
-        setHasMore(false); // Recommendations don't need pagination for now
+        // Filter out jobs with match score ≤ 50%
+        const filteredRecommendations = data.recommendations.filter((job: any) => 
+          !job.match_score || job.match_score > 50
+        );
+        setAllPersonalizedJobs(filteredRecommendations);
+        setTotalJobs(filteredRecommendations.length);
+        setPersonalizedCurrentPage(1);
+        
+        // Show first 5 jobs
+        const firstPage = filteredRecommendations.slice(0, 5);
+        setJobs(firstPage);
+        setHasMore(filteredRecommendations.length > 5);
         setCurrentPage(1);
       } else {
         // Fallback to default jobs if no recommendations
@@ -324,10 +335,28 @@ export function JobListings({
   };
 
   const loadMoreJobs = async () => {
-    if (loadingMore || !hasMore || isPersonalized) return; // Don't load more for personalized
+    if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
-    await fetchDefaultJobs(currentPage + 1);
+    
+    if (isPersonalized) {
+      // Load more from cached personalized jobs
+      const nextPage = personalizedCurrentPage + 1;
+      const startIdx = (nextPage - 1) * 5;
+      const endIdx = startIdx + 5;
+      const nextJobs = allPersonalizedJobs.slice(startIdx, endIdx);
+      
+      if (nextJobs.length > 0) {
+        setJobs(prev => [...prev, ...nextJobs]);
+        setPersonalizedCurrentPage(nextPage);
+        setHasMore(endIdx < allPersonalizedJobs.length);
+      } else {
+        setHasMore(false);
+      }
+    } else {
+      await fetchDefaultJobs(currentPage + 1);
+    }
+    
     setLoadingMore(false);
   };
 
@@ -339,6 +368,8 @@ export function JobListings({
     setParsedResumeData(null);
     setExpandedJobs(new Set());
     setSavedJobs(new Set());
+    setAllPersonalizedJobs([]);
+    setPersonalizedCurrentPage(1);
     fetchDefaultJobs();
     
     // Dispatch UI refresh event to notify other components
@@ -608,8 +639,8 @@ export function JobListings({
         })}
       </div>
       
-      {/* Load More Button - only for non-personalized listings */}
-      {!isPersonalized && hasMore && (
+      {/* Load More Button */}
+      {hasMore && (
         <div className="flex justify-center mt-6">
           <button
             onClick={loadMoreJobs}
@@ -621,9 +652,12 @@ export function JobListings({
         </div>
       )}
       
-      {!isPersonalized && !hasMore && jobs.length > 0 && (
+      {!hasMore && jobs.length > 0 && (
         <div className="text-center mt-6 text-gray-500">
-          No more jobs to load
+          {isPersonalized 
+            ? `Showing all ${jobs.length} qualified job matches` 
+            : 'No more jobs to load'
+          }
         </div>
       )}
       
