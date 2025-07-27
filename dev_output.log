@@ -348,3 +348,43 @@ Job matching calculation completed
  GET /_next/static/css/app/layout.css?v=1753595533206 404 in 224ms
  ⨯ Module not found: Error: Can't resolve 'next-flight-client-entry-loader' in '/Users/shreyakochar/career'
  ✓ Compiled in 1512ms (963 modules)
+ ✓ Compiled /_not-found in 281ms (954 modules)
+ ⨯ Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/server/vendor-chunks/next.js'
+    at <unknown> (.next/server/app/_not-found/page.js:227:47)
+    at Object.<anonymous> (.next/server/app/_not-found/page.js:230:3) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/server/vendor-chunks/next.js'
+}
+ ✓ Compiled /_error in 377ms (1041 modules)
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/fallback-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/fallback-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/server/pages/_document.js'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/server/pages/_document.js'
+}
+[Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/fallback-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/fallback-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/server/pages/_document.js'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/server/pages/_document.js'
+}
+[Error: ENOENT: no such file or directory, open '/Users/shreyakochar/career/.next/fallback-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/shreyakochar/career/.next/fallback-build-manifest.json'
+}
