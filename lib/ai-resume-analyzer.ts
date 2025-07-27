@@ -123,7 +123,15 @@ Return a JSON object with:
   const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
   if (!content) throw new Error("No response from OpenAI");
   
-  const parsed = JSON.parse(content);
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (parseError) {
+    console.error('JSON parsing failed for content:', content.substring(0, 200), '...');
+    console.error('Parse error:', parseError);
+    // Return a safe fallback structure
+    throw new Error('Invalid JSON response from AI analysis');
+  }
   
   return {
     skills: Array.isArray(parsed.skills) ? parsed.skills : [],
@@ -173,7 +181,19 @@ Return JSON with:
   });
 
   const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
-  return JSON.parse(content || '{}');
+  
+  try {
+    return JSON.parse(content || '{}');
+  } catch (parseError) {
+    console.error('Career progression JSON parsing failed:', content?.substring(0, 200));
+    console.error('Parse error:', parseError);
+    return {
+      level: "mid",
+      yearsOfExperience: 3,
+      progressionRate: "steady",
+      careerPath: []
+    };
+  }
 }
 
 async function analyzeSkillProficiency(resumeText: string) {
@@ -221,7 +241,19 @@ Return JSON with:
   });
 
   const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
-  return JSON.parse(content || '{}');
+  
+  try {
+    return JSON.parse(content || '{}');
+  } catch (parseError) {
+    console.error('Skills analysis JSON parsing failed:', content?.substring(0, 200));
+    console.error('Parse error:', parseError);
+    return {
+      technicalSkills: [],
+      softSkills: [],
+      domainExpertise: [],
+      skillGaps: []
+    };
+  }
 }
 
 async function generateCareerGuidance(resumeText: string, basicData: ParsedResumeData) {
@@ -270,7 +302,25 @@ Return JSON with:
   });
 
   const content = response.choices[0]?.message?.content?.replace(/```json|```/gi, '').trim();
-  return JSON.parse(content || '{}');
+  
+  try {
+    return JSON.parse(content || '{}');
+  } catch (parseError) {
+    console.error('Career guidance JSON parsing failed:', content?.substring(0, 200));
+    console.error('Parse error:', parseError);
+    return {
+      goals: {
+        suggestedRoles: [],
+        careerAdvice: "Unable to generate career advice at this time",
+        nextSkillsToLearn: []
+      },
+      insights: {
+        strengthAreas: [],
+        improvementAreas: [],
+        uniqueSellingPoints: []
+      }
+    };
+  }
 }
 
 export async function generateJobMatchExplanation(

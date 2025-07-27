@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface FilterSidebarProps {
@@ -25,6 +25,8 @@ export function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
     seniority: '',
     department: []
   });
+  
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Derived active filters for display
   const getActiveFilters = () => {
@@ -215,59 +217,73 @@ export function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
           </div>
         </div>
 
-        {/* Department */}
-        <div>
-          <h4 className="text-sm font-medium mb-2 text-black">Department</h4>
-          <div className="space-y-1">
-            {["Engineering", "Marketing", "Sales", "Healthcare", "Finance", "Analytics", "Design", "Operations", "Education"].map((dept) => (
-              <div key={dept} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={dept}
-                  checked={filters.department.includes(dept)}
-                  onChange={(e) => updateDepartment(dept, e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <label htmlFor={dept} className="text-sm text-gray-700 cursor-pointer">
-                  {dept}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Seniority Level */}
-        <div>
-          <h4 className="text-sm font-medium mb-2 text-black">Seniority Level</h4>
-          <div className="space-y-1">
-            {["Junior", "Mid", "Senior", "Lead", "VP", "Executive"].map((level) => (
-              <div key={level} className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="seniority"
-                  id={level}
-                  checked={filters.seniority === level}
-                  onChange={(e) => setFilters(prev => ({ ...prev, seniority: e.target.checked ? level : '' }))}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                />
-                <label htmlFor={level} className="text-sm text-gray-700 cursor-pointer">
-                  {level}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Show Advanced Filters Button */}
+        {/* Advanced Filters Toggle */}
         <div className="pt-4 border-t border-gray-200">
           <button
-            className="w-full flex items-center justify-start px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded transition-colors"
             type="button"
+            aria-expanded={showAdvanced}
+            aria-controls="advanced-filters"
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Show Advanced Filters
+            <div className="flex items-center">
+              <Settings className="h-4 w-4 mr-2" />
+              Advanced Filters
+            </div>
+            {showAdvanced ? 
+              <ChevronUp className="h-4 w-4" /> : 
+              <ChevronDown className="h-4 w-4" />
+            }
           </button>
         </div>
+
+        {/* Advanced Filters Section */}
+        {showAdvanced && (
+          <div id="advanced-filters" className="space-y-6 pt-4 border-t border-gray-100">
+            {/* Department */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-black">Department</h4>
+              <div className="space-y-1">
+                {["Engineering", "Marketing", "Sales", "Healthcare", "Finance", "Analytics", "Design", "Operations", "Education"].map((dept) => (
+                  <div key={dept} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={dept}
+                      checked={filters.department.includes(dept)}
+                      onChange={(e) => updateDepartment(dept, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor={dept} className="text-sm text-gray-700 cursor-pointer">
+                      {dept}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Seniority Level */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-black">Seniority Level</h4>
+              <div className="space-y-1">
+                {["Junior", "Mid", "Senior", "Lead", "VP", "Executive"].map((level) => (
+                  <div key={level} className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="seniority"
+                      id={level}
+                      checked={filters.seniority === level}
+                      onChange={(e) => setFilters(prev => ({ ...prev, seniority: e.target.checked ? level : '' }))}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor={level} className="text-sm text-gray-700 cursor-pointer">
+                      {level}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

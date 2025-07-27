@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const location = searchParams.get('location');
     const department = searchParams.get('department');
+    const employmentType = searchParams.get('employment_type');
+    const seniorityLevel = searchParams.get('seniority_level');
     const remote = searchParams.get('remote');
     const onsite = searchParams.get('onsite');
     const hybrid = searchParams.get('hybrid');
@@ -103,6 +105,19 @@ export async function GET(request: NextRequest) {
       const departments = department.split(',').map((d: string) => d.trim());
       filteredJobs = filteredJobs.filter((job: any) => 
         departments.some(dept => job.department.toLowerCase().includes(dept.toLowerCase()))
+      );
+    }
+
+    if (employmentType) {
+      const employmentTypes = employmentType.split(',').map((t: string) => t.trim().toLowerCase());
+      filteredJobs = filteredJobs.filter((job: any) => 
+        employmentTypes.includes(job.employment_type.toLowerCase())
+      );
+    }
+
+    if (seniorityLevel) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        job.seniority_level.toLowerCase() === seniorityLevel.toLowerCase()
       );
     }
 
