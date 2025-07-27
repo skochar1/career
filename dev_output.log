@@ -1,0 +1,19 @@
+
+> career-site@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.4.4
+   - Local:        http://localhost:3000
+   - Network:      http://172.19.248.120:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.6s (722 modules)
+ GET / 200 in 3149ms
+ ○ Compiling /api/jobs ...
+ ✓ Compiled /api/jobs in 852ms (881 modules)
+ GET /api/jobs 200 in 1057ms
+ ✓ Compiled in 289ms (324 modules)
+ ✓ Compiled in 606ms (324 modules)

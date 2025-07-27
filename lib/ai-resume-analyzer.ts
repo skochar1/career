@@ -148,24 +148,19 @@ Return a JSON object with:
 
 async function analyzeCareerProgression(resumeText: string) {
   const prompt = `
-Analyze the career progression in this resume:
+CRITICAL: Return ONLY valid JSON. No explanations.
 
-${resumeText}
+Resume: ${resumeText.substring(0, 1000)}
 
-Evaluate:
-1. Years of experience (estimate from work history)
-2. Career progression rate (how quickly they've advanced)
-3. Career path taken (sequence of roles/companies)
-4. Current level assessment
-
-Return JSON with:
+Return exactly:
 {
-  "level": "junior|mid|senior|lead|executive",
-  "yearsOfExperience": number,
-  "progressionRate": "fast|steady|slow", 
-  "careerPath": ["role1", "role2", "role3"]
+  "level": "mid",
+  "yearsOfExperience": 3,
+  "progressionRate": "steady", 
+  "careerPath": ["role1", "role2"]
 }
-`;
+
+JSON ONLY:`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -198,34 +193,19 @@ Return JSON with:
 
 async function analyzeSkillProficiency(resumeText: string) {
   const prompt = `
-Analyze the skills in this resume and categorize them by proficiency:
+CRITICAL: Return ONLY valid JSON. No explanations.
 
-${resumeText}
+Resume: ${resumeText.substring(0, 1000)}
 
-Categorize skills into:
-1. Technical skills (programming, tools, technologies)
-2. Soft skills (leadership, communication, etc.)
-3. Domain expertise (industry knowledge)
-4. Skill gaps (what might be missing for career growth)
-
-For each skill, estimate proficiency level based on context, projects, and years mentioned.
-
-Return JSON with:
+Return exactly:
 {
-  "technicalSkills": [
-    {
-      "category": "Programming Languages",
-      "skills": [
-        {"name": "JavaScript", "proficiency": "advanced", "yearsOfExperience": 5},
-        {"name": "Python", "proficiency": "intermediate", "yearsOfExperience": 2}
-      ]
-    }
-  ],
-  "softSkills": [similar structure],
-  "domainExpertise": ["Financial Services", "Healthcare"],
-  "skillGaps": ["Cloud Architecture", "Machine Learning"]
+  "technicalSkills": [{"category": "Programming", "skills": [{"name": "JavaScript", "proficiency": "intermediate", "yearsOfExperience": 3}]}],
+  "softSkills": [{"category": "Communication", "skills": [{"name": "Leadership", "proficiency": "intermediate", "yearsOfExperience": 2}]}],
+  "domainExpertise": ["Technology"],
+  "skillGaps": ["Advanced skills"]
 }
-`;
+
+JSON ONLY:`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -258,35 +238,27 @@ Return JSON with:
 
 async function generateCareerGuidance(resumeText: string, basicData: ParsedResumeData) {
   const prompt = `
-Based on this resume, provide career guidance:
+CRITICAL: Return ONLY valid JSON. No explanations.
 
-${resumeText}
+Resume: ${resumeText.substring(0, 800)}
+Level: ${basicData.experienceLevel}
+Skills: ${basicData.skills.slice(0, 5).join(', ')}
 
-Current experience level: ${basicData.experienceLevel}
-Current skills: ${basicData.skills.join(', ')}
-
-Provide:
-1. 5 suggested roles they could pursue next
-2. Career advice for their next move
-3. Skills they should learn to advance
-4. Their key strengths for job matching
-5. Areas for improvement
-6. Unique selling points
-
-Return JSON with:
+Return exactly:
 {
   "goals": {
-    "suggestedRoles": ["Senior Software Engineer", "Technical Lead"],
-    "careerAdvice": "Focus on leadership skills and system design...",
-    "nextSkillsToLearn": ["System Design", "Team Leadership"]
+    "suggestedRoles": ["Role1", "Role2"],
+    "careerAdvice": "Brief advice",
+    "nextSkillsToLearn": ["Skill1", "Skill2"]
   },
   "insights": {
-    "strengthAreas": ["Full-stack development", "Problem solving"],
-    "improvementAreas": ["Leadership experience", "Public speaking"],
-    "uniqueSellingPoints": ["Strong technical foundation", "Cross-functional experience"]
+    "strengthAreas": ["Strength1"],
+    "improvementAreas": ["Area1"],
+    "uniqueSellingPoints": ["Point1"]
   }
 }
-`;
+
+JSON ONLY:`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",

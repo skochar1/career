@@ -87,33 +87,77 @@ export async function POST(request: NextRequest) {
       `;
       const existingCandidate = existingCandidates[0];
       
-      if (existingCandidate) {
-        // Update existing candidate with enhanced data
-        await dbModule.sql`
-          UPDATE candidates 
-          SET resume_filename = ${file.name}, 
-              resume_content = ${resumeData.rawText}, 
-              parsed_skills = ${JSON.stringify(resumeData.skills)}, 
-              experience_level = ${resumeData.experienceLevel}, 
-              preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])},
-              enhanced_data = ${JSON.stringify(resumeData)},
-              updated_at = CURRENT_TIMESTAMP
-          WHERE session_id = ${sessionId}
-        `;
-        candidateId = existingCandidate.id;
-      } else {
-        // Create new candidate with enhanced data
-        const { rows: newCandidate } = await dbModule.sql`
-          INSERT INTO candidates (
-            session_id, resume_filename, resume_content, parsed_skills, 
-            experience_level, preferred_locations, enhanced_data
-          ) VALUES (
-            ${sessionId}, ${file.name}, ${resumeData.rawText}, 
-            ${JSON.stringify(resumeData.skills)}, ${resumeData.experienceLevel}, 
-            ${JSON.stringify(resumeData.preferredLocations || [])}, ${JSON.stringify(resumeData)}
-          ) RETURNING id
-        `;
-        candidateId = newCandidate[0].id;
+      try {
+        if (existingCandidate) {
+          // Try to update with enhanced_data first
+          try {
+            await dbModule.sql`
+              UPDATE candidates 
+              SET resume_filename = ${file.name}, 
+                  resume_content = ${resumeData.rawText}, 
+                  parsed_skills = ${JSON.stringify(resumeData.skills)}, 
+                  experience_level = ${resumeData.experienceLevel}, 
+                  preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])},
+                  enhanced_data = ${JSON.stringify(resumeData)},
+                  updated_at = CURRENT_TIMESTAMP
+              WHERE session_id = ${sessionId}
+            `;
+          } catch (enhancedError: any) {
+            if (enhancedError.code === '42703') {
+              // enhanced_data column doesn't exist, update without it
+              console.warn('enhanced_data column missing, updating without it');
+              await dbModule.sql`
+                UPDATE candidates 
+                SET resume_filename = ${file.name}, 
+                    resume_content = ${resumeData.rawText}, 
+                    parsed_skills = ${JSON.stringify(resumeData.skills)}, 
+                    experience_level = ${resumeData.experienceLevel}, 
+                    preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])},
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE session_id = ${sessionId}
+              `;
+            } else {
+              throw enhancedError;
+            }
+          }
+          candidateId = existingCandidate.id;
+        } else {
+          // Try to create with enhanced_data first
+          try {
+            const { rows: newCandidate } = await dbModule.sql`
+              INSERT INTO candidates (
+                session_id, resume_filename, resume_content, parsed_skills, 
+                experience_level, preferred_locations, enhanced_data
+              ) VALUES (
+                ${sessionId}, ${file.name}, ${resumeData.rawText}, 
+                ${JSON.stringify(resumeData.skills)}, ${resumeData.experienceLevel}, 
+                ${JSON.stringify(resumeData.preferredLocations || [])}, ${JSON.stringify(resumeData)}
+              ) RETURNING id
+            `;
+            candidateId = newCandidate[0].id;
+          } catch (enhancedError: any) {
+            if (enhancedError.code === '42703') {
+              // enhanced_data column doesn't exist, create without it
+              console.warn('enhanced_data column missing, creating without it');
+              const { rows: newCandidate } = await dbModule.sql`
+                INSERT INTO candidates (
+                  session_id, resume_filename, resume_content, parsed_skills, 
+                  experience_level, preferred_locations
+                ) VALUES (
+                  ${sessionId}, ${file.name}, ${resumeData.rawText}, 
+                  ${JSON.stringify(resumeData.skills)}, ${resumeData.experienceLevel}, 
+                  ${JSON.stringify(resumeData.preferredLocations || [])}
+                ) RETURNING id
+              `;
+              candidateId = newCandidate[0].id;
+            } else {
+              throw enhancedError;
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error('Database operation failed:', dbError);
+        throw dbError;
       }
     } else {
       // SQLite operations
