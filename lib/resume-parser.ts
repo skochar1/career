@@ -36,31 +36,47 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
   try {
     // Extract text based on mimetype
     if (file.mimetype === "application/pdf") {
-      // For production: skip pdf-parse entirely if it's causing issues
-      console.log("[RESUME] Processing PDF - using fallback text extraction");
-      rawText = `
-      Resume uploaded successfully (PDF format).
+      // Handle PDF parsing with serverless environment considerations
+      console.log("[RESUME] Processing PDF file");
       
-      To ensure accurate job matching, please provide a text summary of your:
-      - Professional experience and roles
-      - Technical skills and expertise  
-      - Education and certifications
-      - Key achievements and projects
+      // Skip PDF parsing in serverless environments where it's problematic
+      const isServerless = process.env.VERCEL || process.env.LAMBDA_TASK_ROOT;
       
-      The system will perform basic analysis and you can refine your profile manually.
-      `;
-      
-      // Try PDF parsing in all environments, but handle errors gracefully
-      try {
-        const pdfParse = (await import("pdf-parse")).default;
-        const result = await pdfParse(file.buffer);
-        if (result.text && result.text.trim().length > 50) {
-          rawText = result.text;
-          console.log("[RESUME] Successfully extracted text from PDF");
+      if (isServerless) {
+        console.log("[RESUME] Serverless environment detected, using fallback text extraction");
+        rawText = `
+        Resume uploaded successfully (PDF format).
+        
+        PDF text extraction is limited in serverless environments. For best job matching results, 
+        please consider uploading your resume as a .txt or .docx file, or provide key information:
+        
+        - Your professional experience and roles
+        - Technical skills and expertise  
+        - Education and certifications
+        - Key achievements and projects
+        
+        The system will perform analysis based on available information.
+        `;
+      } else {
+        // Try PDF parsing in non-serverless environments
+        try {
+          const pdfParse = (await import("pdf-parse")).default;
+          const result = await pdfParse(file.buffer);
+          if (result.text && result.text.trim().length > 50) {
+            rawText = result.text;
+            console.log("[RESUME] Successfully extracted text from PDF");
+          } else {
+            throw new Error("PDF text extraction returned empty content");
+          }
+        } catch (pdfError: any) {
+          console.warn("[RESUME] PDF parsing failed:", pdfError?.message || pdfError);
+          rawText = `
+          Resume uploaded successfully (PDF format).
+          
+          Text extraction failed. Please ensure your PDF contains selectable text 
+          or consider uploading as .txt or .docx format for better results.
+          `;
         }
-      } catch (pdfError: any) {
-        console.warn("[RESUME] PDF parsing failed, using fallback text:", pdfError?.message || pdfError);
-        // Keep the fallback text we set above
       }
     } else if (
       file.mimetype ===

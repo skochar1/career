@@ -129,3 +129,19 @@ Completed optimized job matching: { totalMatches: 22, cacheHits: '100%', avgScor
  GET / 200 in 418ms
  ✓ Compiled in 1390ms (963 modules)
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shreyakochar/career/.next/cache/webpack/server-development/5.pack.gz_' -> '/Users/shreyakochar/career/.next/cache/webpack/server-development/5.pack.gz'
+ ✓ Compiled in 824ms (470 modules)
+ ✓ Compiled in 600ms (470 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shreyakochar/career/.next/cache/webpack/client-development/2.pack.gz_' -> '/Users/shreyakochar/career/.next/cache/webpack/client-development/2.pack.gz'
+ ✓ Compiled /api/upload-resume in 231ms (1015 modules)
+Starting resume text extraction for file: Shreya_K_Resume.pdf Size: 133238 Type: application/pdf
+[RESUME] Processing PDF file
+[RESUME] PDF parsing failed, using fallback: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'
+[RESUME] Parsed skills: [] 
+Parsed keywords: []
+Starting enhanced AI resume analysis
+Enhanced AI resume analysis completed successfully
+Cache invalidated for session: test-pdf...
+Starting job matching calculation
+ POST /api/upload-resume 200 in 20691ms
+Job matching calculation completed
+ ✓ Compiled in 516ms (963 modules)
