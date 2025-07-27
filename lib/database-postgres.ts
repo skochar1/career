@@ -34,6 +34,7 @@ export async function initializeDatabase() {
       parsed_skills TEXT,
       experience_level TEXT,
       preferred_locations TEXT,
+      enhanced_data TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

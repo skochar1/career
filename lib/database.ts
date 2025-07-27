@@ -48,6 +48,7 @@ function initializeTables() {
       parsed_skills TEXT,
       experience_level TEXT,
       preferred_locations TEXT,
+      enhanced_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

@@ -259,9 +259,13 @@ export function JobSearch({ onSearch }: JobSearchProps) {
             onOpenChange={(open) => {
               setIsResumeDialogOpen(open);
               if (!open) {
-                // When dialog is closed, reset upload state if no successful upload
+                // When dialog is closed, only reset UI state, don't trigger global refresh
+                // if no upload was completed
                 if (!uploadComplete) {
-                  resetUpload();
+                  setUploadedFile(null);
+                  setIsUploading(false);
+                  setIsDragOver(false);
+                  // Don't call resetUpload() which triggers uiRefresh
                 }
               }
             }}
@@ -330,7 +334,13 @@ export function JobSearch({ onSearch }: JobSearchProps) {
                   <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
                     <button
                       className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium order-2 sm:order-1"
-                      onClick={() => resetUpload()}
+                      onClick={() => {
+                        // Just close dialog without triggering global refresh
+                        setUploadedFile(null);
+                        setIsUploading(false);
+                        setIsDragOver(false);
+                        setIsResumeDialogOpen(false);
+                      }}
                     >
                       Cancel
                     </button>

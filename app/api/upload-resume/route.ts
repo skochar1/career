@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseResume } from '../../../lib/resume-parser';
+import { analyzeResumeWithAI } from '../../../lib/ai-resume-analyzer';
 import { calculateJobMatches } from '../../../lib/job-matcher';
 
 // Use PostgreSQL in production, SQLite in development
@@ -59,14 +60,18 @@ export async function POST(request: NextRequest) {
     // Convert File to Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Parse the resume using OpenAI
-    console.log('Starting resume parsing for file:', file.name, 'Size:', file.size, 'Type:', file.type);
-    const resumeData = await parseResume({
+    // Extract text from file first (using basic parser)
+    console.log('Starting resume text extraction for file:', file.name, 'Size:', file.size, 'Type:', file.type);
+    const basicData = await parseResume({
       buffer,
       filename: file.name,
       mimetype: file.type
     });
-    console.log('Resume parsing completed successfully');
+    
+    // Enhanced AI analysis
+    console.log('Starting enhanced AI resume analysis');
+    const resumeData = await analyzeResumeWithAI(basicData.rawText);
+    console.log('Enhanced AI resume analysis completed successfully');
 
     // Store candidate data in database
     let candidateId: number;
@@ -82,28 +87,29 @@ export async function POST(request: NextRequest) {
       const existingCandidate = existingCandidates[0];
       
       if (existingCandidate) {
-        // Update existing candidate
+        // Update existing candidate with enhanced data
         await dbModule.sql`
           UPDATE candidates 
           SET resume_filename = ${file.name}, 
               resume_content = ${resumeData.rawText}, 
               parsed_skills = ${JSON.stringify(resumeData.skills)}, 
               experience_level = ${resumeData.experienceLevel}, 
-              preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])}, 
+              preferred_locations = ${JSON.stringify(resumeData.preferredLocations || [])},
+              enhanced_data = ${JSON.stringify(resumeData)},
               updated_at = CURRENT_TIMESTAMP
           WHERE session_id = ${sessionId}
         `;
         candidateId = existingCandidate.id;
       } else {
-        // Create new candidate
+        // Create new candidate with enhanced data
         const { rows: newCandidate } = await dbModule.sql`
           INSERT INTO candidates (
             session_id, resume_filename, resume_content, parsed_skills, 
-            experience_level, preferred_locations
+            experience_level, preferred_locations, enhanced_data
           ) VALUES (
             ${sessionId}, ${file.name}, ${resumeData.rawText}, 
             ${JSON.stringify(resumeData.skills)}, ${resumeData.experienceLevel}, 
-            ${JSON.stringify(resumeData.preferredLocations || [])}
+            ${JSON.stringify(resumeData.preferredLocations || [])}, ${JSON.stringify(resumeData)}
           ) RETURNING id
         `;
         candidateId = newCandidate[0].id;
@@ -116,11 +122,11 @@ export async function POST(request: NextRequest) {
       const existingCandidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
       
       if (existingCandidate) {
-        // Update existing candidate
+        // Update existing candidate with enhanced data
         const updateStmt = db.prepare(`
           UPDATE candidates 
           SET resume_filename = ?, resume_content = ?, parsed_skills = ?, 
-              experience_level = ?, preferred_locations = ?, updated_at = CURRENT_TIMESTAMP
+              experience_level = ?, preferred_locations = ?, enhanced_data = ?, updated_at = CURRENT_TIMESTAMP
           WHERE session_id = ?
         `);
         
@@ -130,17 +136,18 @@ export async function POST(request: NextRequest) {
           JSON.stringify(resumeData.skills),
           resumeData.experienceLevel,
           JSON.stringify(resumeData.preferredLocations || []),
+          JSON.stringify(resumeData),
           sessionId
         );
         
         candidateId = (existingCandidate as any).id;
       } else {
-        // Create new candidate
+        // Create new candidate with enhanced data
         const insertStmt = db.prepare(`
           INSERT INTO candidates (
             session_id, resume_filename, resume_content, parsed_skills, 
-            experience_level, preferred_locations
-          ) VALUES (?, ?, ?, ?, ?, ?)
+            experience_level, preferred_locations, enhanced_data
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
         
         const result = insertStmt.run(
@@ -149,7 +156,8 @@ export async function POST(request: NextRequest) {
           resumeData.rawText,
           JSON.stringify(resumeData.skills),
           resumeData.experienceLevel,
-          JSON.stringify(resumeData.preferredLocations || [])
+          JSON.stringify(resumeData.preferredLocations || []),
+          JSON.stringify(resumeData)
         );
         
         candidateId = Number(result.lastInsertRowid);
