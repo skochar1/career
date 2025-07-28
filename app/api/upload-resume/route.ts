@@ -16,6 +16,8 @@ if (isProduction) {
 
 export async function POST(request: NextRequest) {
   let file: File | undefined; // <-- Declare at the top for catch block!
+  const debug: any = {}; // Collect debug info for API output
+
   try {
     const formData = await request.formData();
     file = formData.get('resume') as File;
@@ -60,33 +62,47 @@ export async function POST(request: NextRequest) {
 
     // Convert File to Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
-    
+
     // Extract text from file first (using basic parser)
-    console.log('Starting resume text extraction for file:', file.name, 'Size:', file.size, 'Type:', file.type);
+    console.log('[🔥 API] Starting resume text extraction for file:', file.name, 'Size:', file.size, 'Type:', file.type);
     const basicData = await parseResume({
       buffer,
       filename: file.name,
       mimetype: file.type
     });
-    
+    debug.basicData = {
+      skills: basicData.skills,
+      summary: basicData.summary,
+      rawTextLen: basicData.rawText?.length || 0,
+      rawTextPreview: basicData.rawText?.slice(0, 250) || '',
+    };
+
     // Enhanced AI analysis
-    console.log('Starting enhanced AI resume analysis');
+    console.log('[🔥 API] Starting enhanced AI resume analysis');
+    debug.analyzeResumeWithAI_start = true;
     const resumeData = await analyzeResumeWithAI(basicData.rawText);
-    console.log('Enhanced AI resume analysis completed successfully');
+    debug.resumeData = {
+      skills: resumeData.skills,
+      summary: resumeData.summary,
+      rawTextLen: resumeData.rawText?.length || 0,
+      rawTextPreview: resumeData.rawText?.slice(0, 250) || '',
+    };
+    console.log('[🔥 API] Enhanced AI resume analysis completed successfully');
 
     // Store candidate data in database
     let candidateId: number;
-    
+    debug.db = {};
+
     if (isProduction) {
       // PostgreSQL operations
       await dbModule.initializeDatabase();
-      
+
       // Check if candidate already exists
       const { rows: existingCandidates } = await dbModule.sql`
         SELECT * FROM candidates WHERE session_id = ${sessionId}
       `;
       const existingCandidate = existingCandidates[0];
-      
+
       try {
         if (existingCandidate) {
           // Try to update with enhanced_data first
@@ -156,16 +172,21 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (dbError) {
+        if (dbError && typeof dbError === "object" && "message" in dbError) {
+          debug.db.error = (dbError as any).message;
+        } else {
+          debug.db.error = String(dbError);
+        }
         console.error('Database operation failed:', dbError);
         throw dbError;
       }
     } else {
       // SQLite operations
       const db = dbModule.getDatabase();
-      
+
       // Check if candidate already exists
       const existingCandidate = db.prepare('SELECT * FROM candidates WHERE session_id = ?').get(sessionId);
-      
+
       if (existingCandidate) {
         // Update existing candidate with enhanced data
         const updateStmt = db.prepare(`
@@ -174,7 +195,7 @@ export async function POST(request: NextRequest) {
               experience_level = ?, preferred_locations = ?, enhanced_data = ?, updated_at = CURRENT_TIMESTAMP
           WHERE session_id = ?
         `);
-        
+
         updateStmt.run(
           file.name,
           resumeData.rawText,
@@ -184,7 +205,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify(resumeData),
           sessionId
         );
-        
+
         candidateId = (existingCandidate as any).id;
       } else {
         // Create new candidate with enhanced data
@@ -194,7 +215,7 @@ export async function POST(request: NextRequest) {
             experience_level, preferred_locations, enhanced_data
           ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-        
+
         const result = insertStmt.run(
           sessionId,
           file.name,
@@ -204,19 +225,22 @@ export async function POST(request: NextRequest) {
           JSON.stringify(resumeData.preferredLocations || []),
           JSON.stringify(resumeData)
         );
-        
+
         candidateId = Number(result.lastInsertRowid);
       }
     }
 
     // Invalidate cache for this session when new resume is uploaded
     matchCache.invalidateSession(sessionId);
-    console.log('Cache invalidated for session:', sessionId.substring(0, 8) + '...');
+    debug.cacheInvalidated = sessionId.substring(0, 8) + '...';
 
     // Calculate job matches
-    console.log('Starting job matching calculation');
+    debug.jobMatchStart = true;
     await calculateJobMatches(candidateId, resumeData);
-    console.log('Job matching calculation completed');
+    debug.jobMatchComplete = true;
+
+    // Print the final debug state to server console as well
+    console.log('[🔥 API] Debug:', JSON.stringify(debug, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -227,7 +251,8 @@ export async function POST(request: NextRequest) {
         experienceLevel: resumeData.experienceLevel,
         preferredLocations: resumeData.preferredLocations,
         summary: resumeData.summary
-      }
+      },
+      debug // return for inspection
     });
 
   } catch (error: any) {
@@ -241,7 +266,7 @@ export async function POST(request: NextRequest) {
       fileType: file?.type,
       fileSize: file?.size
     });
-    
+
     return NextResponse.json(
       { 
         error: 'Failed to process resume', 

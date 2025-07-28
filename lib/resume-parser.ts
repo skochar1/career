@@ -55,47 +55,47 @@ function extractTextFromPDFBuffer(buffer: Buffer): string {
     // Convert buffer to string and look for text content
     const pdfString = buffer.toString('latin1');
     
-    // PDF text objects are typically stored between "BT" and "ET" markers
-    // This is a simple extraction that works for basic PDFs
-    const textMatches = pdfString.match(/BT\s+.*?ET/gs) || [];
-    
     let extractedText = '';
     
-    for (const match of textMatches) {
-      // Extract text from PDF text objects
-      // Look for patterns like "(text)" or "text"
-      const textContentMatches = match.match(/\([^)]+\)/g) || [];
-      for (const textMatch of textContentMatches) {
-        const cleanText = textMatch.replace(/[()]/g, '').trim();
-        if (cleanText.length > 1) {
-          extractedText += cleanText + ' ';
-        }
-      }
-      
-      // Also look for text after "Tj" commands
-      const tjMatches = match.match(/\([^)]+\)\s*Tj/g) || [];
-      for (const tjMatch of tjMatches) {
-        const cleanText = tjMatch.replace(/[()]/g, '').replace(/\s*Tj.*/, '').trim();
-        if (cleanText.length > 1) {
-          extractedText += cleanText + ' ';
-        }
+    // Strategy 1: Look for text in parentheses (most common PDF text format)
+    const parenthesesMatches = pdfString.match(/\([^)]{2,100}\)/g) || [];
+    for (const match of parenthesesMatches) {
+      const text = match.slice(1, -1); // Remove parentheses
+      // Only include text that looks like readable content (has letters and common chars)
+      if (/[a-zA-Z]{2,}/.test(text) && !/^[\x00-\x1F\x7F-\xFF]+$/.test(text)) {
+        extractedText += text + ' ';
       }
     }
     
-    // Also try to extract text that might be encoded differently
-    const streamMatches = pdfString.match(/stream\s+(.*?)\s+endstream/gs) || [];
-    for (const streamMatch of streamMatches) {
-      const streamContent = streamMatch.replace(/^stream\s+/, '').replace(/\s+endstream$/, '');
-      // Look for readable text in streams
-      const readableText = streamContent.match(/[A-Za-z0-9\s@.,;:!?-]{3,}/g) || [];
-      for (const text of readableText) {
-        if (text.trim().length > 2) {
-          extractedText += text.trim() + ' ';
-        }
+    // Strategy 2: Look for text between angle brackets
+    const angleBracketMatches = pdfString.match(/<[^>]{2,100}>/g) || [];
+    for (const match of angleBracketMatches) {
+      const text = match.slice(1, -1); // Remove angle brackets
+      if (/[a-zA-Z]{2,}/.test(text) && !/^[\x00-\x1F\x7F-\xFF]+$/.test(text)) {
+        extractedText += text + ' ';
       }
     }
     
-    return extractedText.trim();
+    // Strategy 3: Look for readable ASCII text sequences
+    const readableMatches = pdfString.match(/[A-Za-z][A-Za-z0-9\s.,;:!?()\-@]{10,200}/g) || [];
+    for (const match of readableMatches) {
+      // Filter out sequences that are mostly non-printable or look like encodings
+      const cleanText = match.replace(/[\x00-\x1F\x7F-\xFF]/g, '').trim();
+      if (cleanText.length > 10 && /[a-zA-Z]{5,}/.test(cleanText)) {
+        extractedText += cleanText + ' ';
+      }
+    }
+    
+    // Clean up the extracted text
+    extractedText = extractedText
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/([a-z])([A-Z])/g, '$1 $2') // Add spaces between camelCase
+      .trim();
+    
+    console.log("[RESUME] Extracted text length:", extractedText.length);
+    console.log("[RESUME] First 200 chars:", extractedText.substring(0, 200));
+    
+    return extractedText;
     
   } catch (error) {
     console.warn("[RESUME] PDF buffer extraction failed:", error);
@@ -152,6 +152,7 @@ function generatePDFFallbackText(): string {
 
 export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
   let rawText = "";
+  console.log("[🔥 TEST] parseResume() was called for:", file.filename);
   try {
     // Extract text based on mimetype
     if (file.mimetype === "application/pdf") {
