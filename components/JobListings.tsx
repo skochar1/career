@@ -129,9 +129,21 @@ export function JobListings({
     const loadJobs = async () => {
       try {
         if (isPersonalized && sessionId) {
-          // For personalized jobs, only force refresh if session changed, otherwise use cache
-          const shouldForceRefresh = sessionId !== sessionId; // This will be false, using cache by default
-          if (isMounted) await fetchPersonalizedJobs(sessionId, false); // Always use cache for filter changes
+          // For personalized jobs, if we have cached data, just apply filters client-side
+          if (allPersonalizedJobs.length > 0) {
+            console.log('🎯 Applying filters to cached personalized jobs');
+            const filteredJobs = applyClientSideFilters(allPersonalizedJobs);
+            setTotalJobs(filteredJobs.length);
+            const firstPage = filteredJobs.slice(0, 5);
+            setJobs(firstPage);
+            setHasMore(filteredJobs.length > 5);
+            setCurrentPage(1);
+            setPersonalizedCurrentPage(1);
+          } else {
+            // Only fetch if no cached data
+            console.log('🎯 No cached data, fetching personalized jobs');
+            if (isMounted) await fetchPersonalizedJobs(sessionId, false);
+          }
         } else if (!isPersonalized) {
           if (isMounted) await fetchDefaultJobs(1);
         }
@@ -293,25 +305,16 @@ export function JobListings({
   };
 
   const fetchPersonalizedJobs = async (sessionId: string, forceRefresh = false) => {
+    // Skip if we already have cached data and not forcing refresh
+    if (!forceRefresh && allPersonalizedJobs.length > 0) {
+      console.log(`🎯 Skipping fetch - already have ${allPersonalizedJobs.length} cached jobs`);
+      return;
+    }
+    
     setLoading(true);
+    console.log(`🎯 Fetching personalized jobs for session ${sessionId.substring(0, 8)}...`);
+    
     try {
-      // Use cached results if available and not forcing refresh
-      if (!forceRefresh && allPersonalizedJobs.length > 0) {
-        console.log(`🎯 Using cached ${allPersonalizedJobs.length} personalized jobs`);
-        // Apply client-side filtering to cached results
-        const filteredJobs = applyClientSideFilters(allPersonalizedJobs);
-        console.log(`🎯 After filtering: ${filteredJobs.length} jobs`);
-        setTotalJobs(filteredJobs.length);
-        
-        const firstPage = filteredJobs.slice(0, 5);
-        setJobs(firstPage);
-        setHasMore(filteredJobs.length > 5);
-        setCurrentPage(1);
-        setPersonalizedCurrentPage(1);
-        setLoading(false);
-        return;
-      }
-      
       const queryString = buildPersonalizedQueryParams(sessionId);
       const res = await fetch(`/api/recommendations?${queryString}`);
       
@@ -332,11 +335,11 @@ export function JobListings({
           !job.match_score || job.match_score > 50
         );
         
-        // Cache the full results on initial load
+        // Cache the full results
         setAllPersonalizedJobs(filteredRecommendations);
         console.log(`🎯 Cached ${filteredRecommendations.length} personalized jobs for session`);
         
-        // Apply client-side filtering
+        // Apply client-side filtering and show results
         const filteredJobs = applyClientSideFilters(filteredRecommendations);
         setTotalJobs(filteredJobs.length);
         setPersonalizedCurrentPage(1);
@@ -347,7 +350,7 @@ export function JobListings({
         setHasMore(filteredJobs.length > 5);
         setCurrentPage(1);
       } else {
-        // Fallback to default jobs if no recommendations
+        // Fallback to empty state if no recommendations
         setJobs([]);
         setTotalJobs(0);
         setHasMore(false);
