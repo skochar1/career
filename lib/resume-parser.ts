@@ -99,62 +99,20 @@ async function extractPDFWithPython(buffer: Buffer): Promise<string> {
   });
 }
 
-async function extractPDFWithPDFJS(buffer: Buffer): Promise<string> {
+async function extractPDFWithBuffer(buffer: Buffer): Promise<string> {
   try {
-    console.log("[RESUME] Attempting PDF.js import...");
-    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-    
-    console.log("[RESUME] PDF.js imported, creating document...");    
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(buffer),
-      verbosity: 0,
-    });
-    
-    const pdf = await loadingTask.promise;
-    console.log("[RESUME] PDF loaded, pages:", pdf.numPages);
-    
-    let extractedText = '';
-    
-    // Extract text from all pages
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      try {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = textContent.items
-          .map((item: any) => item.str || '')
-          .filter((str: string) => str.trim().length > 0)
-          .join(' ');
-        
-        extractedText += pageText + ' ';
-        console.log(`[RESUME] Page ${pageNum} text length:`, pageText.length);
-      } catch (pageError) {
-        console.warn(`[RESUME] Failed to extract text from page ${pageNum}:`, pageError);
-      }
-    }
-    
-    extractedText = extractedText.trim();
-    
-    if (extractedText.length > 50) {
-      console.log("[RESUME] PDF.js text extraction successful, total length:", extractedText.length);
-      console.log("[RESUME] First 200 chars from PDF.js:", extractedText.substring(0, 200));
-      return extractedText;
-    }
-    
-    throw new Error("PDF.js returned insufficient text");
-    
-  } catch (error: any) {
-    console.error("[RESUME] PDF.js extraction failed with detailed error:", error);
-    console.error("[RESUME] Error stack:", error?.stack);
-    
-    // Fallback to buffer extraction
+    console.log("[RESUME] Using buffer extraction fallback...");
     const bufferText = extractTextFromPDFBuffer(buffer);
     if (bufferText.length > 50) {
-      console.log("[RESUME] Buffer extraction fallback successful");
+      console.log("[RESUME] Buffer extraction successful, length:", bufferText.length);
       return bufferText;
     }
     
-    throw new Error(`Both PDF.js and buffer extraction failed: ${error.message}`);
+    throw new Error("Buffer extraction returned insufficient text");
+    
+  } catch (error: any) {
+    console.error("[RESUME] Buffer extraction failed:", error?.message || error);
+    throw new Error(`Buffer extraction failed: ${error.message}`);
   }
 }
 
@@ -320,9 +278,9 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
         console.warn("[RESUME] Python PDF extraction failed:", pdfError?.message || pdfError);
         console.warn("[RESUME] Falling back to buffer extraction...");
         
-        // Fallback to improved buffer extraction
+        // Fallback to buffer extraction
         try {
-          const bufferText = await extractPDFWithPDFJS(file.buffer);
+          const bufferText = await extractPDFWithBuffer(file.buffer);
           if (bufferText && bufferText.length > 50) {
             rawText = bufferText;
             console.log(`[RESUME] Buffer extraction fallback successful: ${rawText.length} characters`);
