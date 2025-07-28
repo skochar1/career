@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import mammoth from "mammoth";
+import { spawn } from "child_process";
+import path from "path";
 
 // DO NOT import pdf-parse statically! (it must be dynamic for Vercel/serverless)
 
@@ -30,59 +32,204 @@ export interface ParsedResumeData {
   }[];
 }
 
+async function extractPDFWithPython(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Get the path to the Python script
+      const scriptPath = path.join(process.cwd(), 'scripts', 'pdf_parser.py');
+      
+      console.log("[RESUME] Launching Python PDF parser:", scriptPath);
+      
+      // Spawn Python process
+      const pythonProcess = spawn('python3', [scriptPath], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      // Collect output
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      // Handle process completion
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          console.error("[RESUME] Python process failed with code:", code);
+          console.error("[RESUME] Python stderr:", stderr);
+          reject(new Error(`Python PDF parser failed with code ${code}: ${stderr}`));
+          return;
+        }
+        
+        try {
+          const result = JSON.parse(stdout);
+          
+          if (result.success) {
+            console.log(`[RESUME] Python parser success: ${result.char_count} chars, ${result.pages} pages`);
+            resolve(result.text);
+          } else {
+            console.warn("[RESUME] Python parser returned error:", result.error);
+            reject(new Error(`Python PDF parser error: ${result.error}`));
+          }
+        } catch (parseError) {
+          console.error("[RESUME] Failed to parse Python output:", stdout);
+          reject(new Error(`Failed to parse Python output: ${parseError}`));
+        }
+      });
+      
+      // Handle process errors
+      pythonProcess.on('error', (error) => {
+        console.error("[RESUME] Python process error:", error);
+        reject(new Error(`Python process error: ${error.message}`));
+      });
+      
+      // Write PDF data to stdin and close
+      pythonProcess.stdin.write(buffer);
+      pythonProcess.stdin.end();
+      
+    } catch (error) {
+      console.error("[RESUME] Error launching Python parser:", error);
+      reject(error);
+    }
+  });
+}
 
-async function extractPDFWithOpenAI(buffer: Buffer): Promise<string> {
+async function extractPDFWithPDFJS(buffer: Buffer): Promise<string> {
   try {
-    // Use a simple text-based extraction approach that works in serverless
-    // This extracts any readable text streams from the PDF buffer
-    const pdfText = extractTextFromPDFBuffer(buffer);
+    console.log("[RESUME] Attempting PDF.js import...");
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
     
-    if (pdfText.length > 50) {
-      console.log("[RESUME] Direct PDF text extraction successful");
-      return pdfText;
+    console.log("[RESUME] PDF.js imported, creating document...");    
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(buffer),
+      verbosity: 0,
+    });
+    
+    const pdf = await loadingTask.promise;
+    console.log("[RESUME] PDF loaded, pages:", pdf.numPages);
+    
+    let extractedText = '';
+    
+    // Extract text from all pages
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        const pageText = textContent.items
+          .map((item: any) => item.str || '')
+          .filter((str: string) => str.trim().length > 0)
+          .join(' ');
+        
+        extractedText += pageText + ' ';
+        console.log(`[RESUME] Page ${pageNum} text length:`, pageText.length);
+      } catch (pageError) {
+        console.warn(`[RESUME] Failed to extract text from page ${pageNum}:`, pageError);
+      }
     }
     
-    throw new Error("No readable text found in PDF buffer");
+    extractedText = extractedText.trim();
+    
+    if (extractedText.length > 50) {
+      console.log("[RESUME] PDF.js text extraction successful, total length:", extractedText.length);
+      console.log("[RESUME] First 200 chars from PDF.js:", extractedText.substring(0, 200));
+      return extractedText;
+    }
+    
+    throw new Error("PDF.js returned insufficient text");
     
   } catch (error: any) {
-    console.error("[RESUME] Direct PDF extraction failed:", error?.message || error);
-    throw error;
+    console.error("[RESUME] PDF.js extraction failed with detailed error:", error);
+    console.error("[RESUME] Error stack:", error?.stack);
+    
+    // Fallback to buffer extraction
+    const bufferText = extractTextFromPDFBuffer(buffer);
+    if (bufferText.length > 50) {
+      console.log("[RESUME] Buffer extraction fallback successful");
+      return bufferText;
+    }
+    
+    throw new Error(`Both PDF.js and buffer extraction failed: ${error.message}`);
   }
 }
 
 function extractTextFromPDFBuffer(buffer: Buffer): string {
   try {
-    // Convert buffer to string and look for text content
-    const pdfString = buffer.toString('latin1');
-    
+    // Convert buffer to binary string for PDF parsing
+    const pdfString = buffer.toString('binary');
     let extractedText = '';
     
-    // Strategy 1: Look for text in parentheses (most common PDF text format)
-    const parenthesesMatches = pdfString.match(/\([^)]{2,100}\)/g) || [];
-    for (const match of parenthesesMatches) {
-      const text = match.slice(1, -1); // Remove parentheses
-      // Only include text that looks like readable content (has letters and common chars)
-      if (/[a-zA-Z]{2,}/.test(text) && !/^[\x00-\x1F\x7F-\xFF]+$/.test(text)) {
-        extractedText += text + ' ';
+    // Strategy 1: Extract text using standard PDF text operators
+    // Look for text between BT (Begin Text) and ET (End Text) operators
+    const textBlocks = pdfString.match(/BT\s(.*?)\sET/gs) || [];
+    
+    for (const block of textBlocks) {
+      // Extract strings in parentheses - standard PDF text format
+      const textStrings = block.match(/\(([^)]*)\)/g) || [];
+      for (const textString of textStrings) {
+        const cleanText = textString.slice(1, -1) // Remove parentheses
+          .replace(/\\([()\\])/g, '$1') // Unescape PDF escaped chars
+          .replace(/\\[rn]/g, ' ') // Replace escaped newlines with spaces
+          .trim();
+        
+        if (cleanText.length > 1 && /[a-zA-Z]/.test(cleanText)) {
+          extractedText += cleanText + ' ';
+        }
+      }
+      
+      // Also look for hex strings <...>
+      const hexStrings = block.match(/<([0-9A-Fa-f]+)>/g) || [];
+      for (const hexString of hexStrings) {
+        try {
+          const hex = hexString.slice(1, -1);
+          const decoded = Buffer.from(hex, 'hex').toString('utf8');
+          if (decoded.length > 1 && /[a-zA-Z]/.test(decoded)) {
+            extractedText += decoded + ' ';
+          }
+        } catch (e) {
+          // Skip invalid hex strings
+        }
       }
     }
     
-    // Strategy 2: Look for text between angle brackets
-    const angleBracketMatches = pdfString.match(/<[^>]{2,100}>/g) || [];
-    for (const match of angleBracketMatches) {
-      const text = match.slice(1, -1); // Remove angle brackets
-      if (/[a-zA-Z]{2,}/.test(text) && !/^[\x00-\x1F\x7F-\xFF]+$/.test(text)) {
-        extractedText += text + ' ';
+    // Strategy 2: Look for stream objects that might contain text
+    const streamMatches = pdfString.match(/stream\s+([\s\S]*?)\s+endstream/g) || [];
+    for (const streamMatch of streamMatches) {
+      const streamContent = streamMatch.replace(/^stream\s+/, '').replace(/\s+endstream$/, '');
+      
+      // Try to find readable text in streams
+      const readableText = streamContent.match(/[A-Za-z][A-Za-z0-9\s.,;:!?()\-@]{4,50}/g) || [];
+      for (const text of readableText) {
+        const cleanText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/g, '').trim();
+        if (cleanText.length > 3 && /[a-zA-Z]{2,}/.test(cleanText)) {
+          extractedText += cleanText + ' ';
+        }
       }
     }
     
-    // Strategy 3: Look for readable ASCII text sequences
-    const readableMatches = pdfString.match(/[A-Za-z][A-Za-z0-9\s.,;:!?()\-@]{10,200}/g) || [];
-    for (const match of readableMatches) {
-      // Filter out sequences that are mostly non-printable or look like encodings
-      const cleanText = match.replace(/[\x00-\x1F\x7F-\xFF]/g, '').trim();
-      if (cleanText.length > 10 && /[a-zA-Z]{5,}/.test(cleanText)) {
-        extractedText += cleanText + ' ';
+    // Strategy 3: Direct text extraction from PDF content
+    // Look for sequences that look like names, emails, addresses, etc.
+    const patterns = [
+      /[A-Z][a-z]+ [A-Z][a-z]+/g, // Names like "John Smith"
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, // Email addresses
+      /\b[A-Z][a-z]+ [A-Z][a-z]+,? [A-Z]{2}\b/g, // City, State
+      /\b\d{3}-\d{3}-\d{4}\b/g, // Phone numbers
+      /\bhttps?:\/\/[^\s]+/g, // URLs
+      /\b[A-Z][a-zA-Z\s]+University\b/g, // Universities
+      /\b[A-Z][a-zA-Z\s&]+(?:Inc|LLC|Corp|Company)\b/g, // Company names
+    ];
+    
+    for (const pattern of patterns) {
+      const matches = pdfString.match(pattern) || [];
+      for (const match of matches) {
+        if (!extractedText.includes(match)) {
+          extractedText += match + ' ';
+        }
       }
     }
     
@@ -159,37 +306,31 @@ export async function parseResume(file: ResumeFile): Promise<ParsedResumeData> {
       // Smart PDF parsing with multiple strategies
       console.log("[RESUME] Processing PDF file");
       
+      // Use Python PDF parser for reliable text extraction
       try {
-        // Strategy 1: Try OpenAI with PDF (works in serverless!)
-        const extractedText = await extractPDFWithOpenAI(file.buffer);
+        console.log("[RESUME] Using Python PDF parser for text extraction...");
+        const extractedText = await extractPDFWithPython(file.buffer);
         if (extractedText && extractedText.length > 50) {
           rawText = extractedText;
-          console.log(`[RESUME] Successfully extracted ${rawText.length} characters using AI extraction`);
+          console.log(`[RESUME] Successfully extracted ${rawText.length} characters using Python parser`);
         } else {
-          throw new Error("AI extraction returned insufficient text");
+          throw new Error("Python PDF extraction returned insufficient text");
         }
+      } catch (pdfError: any) {
+        console.warn("[RESUME] Python PDF extraction failed:", pdfError?.message || pdfError);
+        console.warn("[RESUME] Falling back to buffer extraction...");
         
-      } catch (aiError: any) {
-        console.warn("[RESUME] AI PDF extraction failed:", aiError?.message || aiError);
-        
-        // Strategy 2: Fallback to pdf-parse (local only)
-        const isServerless = process.env.VERCEL || process.env.LAMBDA_TASK_ROOT;
-        if (!isServerless) {
-          try {
-            const pdfParse = (await import("pdf-parse")).default;
-            const result = await pdfParse(file.buffer);
-            if (result.text && result.text.trim().length > 50) {
-              rawText = result.text;
-              console.log("[RESUME] Fallback PDF parsing successful");
-            } else {
-              throw new Error("Fallback parsing also failed");
-            }
-          } catch (fallbackError) {
-            console.warn("[RESUME] Fallback parsing also failed");
-            rawText = generatePDFFallbackText();
+        // Fallback to improved buffer extraction
+        try {
+          const bufferText = await extractPDFWithPDFJS(file.buffer);
+          if (bufferText && bufferText.length > 50) {
+            rawText = bufferText;
+            console.log(`[RESUME] Buffer extraction fallback successful: ${rawText.length} characters`);
+          } else {
+            throw new Error("Buffer extraction also failed");
           }
-        } else {
-          // Strategy 3: Generate intelligent fallback
+        } catch (bufferError: any) {
+          console.warn("[RESUME] All extraction methods failed, using intelligent fallback");
           rawText = await generateSmartPDFFallback(file);
         }
       }
