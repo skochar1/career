@@ -24,7 +24,7 @@ async function deploySyntheticJobs() {
     
     // Split jobs into batches to avoid timeout issues
     const batchSize = 25;
-    const batches = [];
+    const batches: typeof jobs[] = [];
     
     for (let i = 0; i < jobs.length; i += batchSize) {
       batches.push(jobs.slice(i, i + batchSize));

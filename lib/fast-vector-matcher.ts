@@ -279,9 +279,8 @@ export class FastVectorMatcher {
     return explanation;
   }
 
-  private calculateSalaryAlignment(candidateData: EnhancedResumeData, job: Job): number {
-    // Simple heuristic - could be enhanced with more data
-    if (!job.salary_min || !job.salary_max) return 70;
+  private calculateSalaryAlignment(candidateData: EnhancedResumeData, job: Job): 'below' | 'within' | 'above' | 'unknown' {
+    if (!job.salary_min || !job.salary_max) return 'unknown';
     
     const avgSalary = (job.salary_min + job.salary_max) / 2;
     const seniorityMultipliers = {
@@ -296,8 +295,9 @@ export class FastVectorMatcher {
     const expectedMultiplier = seniorityMultipliers[candidateData.experienceLevel as keyof typeof seniorityMultipliers] || 1.0;
     const marketSalary = 80000 * expectedMultiplier; // Base estimate
     
-    const alignment = Math.min(100, (avgSalary / marketSalary) * 100);
-    return Math.round(alignment);
+    if (avgSalary < marketSalary * 0.8) return 'below';
+    if (avgSalary > marketSalary * 1.2) return 'above';
+    return 'within';
   }
 
   private generateQuickRecommendations(match: VectorMatch, candidateData: EnhancedResumeData): string[] {
@@ -337,10 +337,24 @@ export class FastVectorMatcher {
   private async generateFastInsights(
     candidateData: EnhancedResumeData,
     matches: VectorMatch[]
-  ): Promise<string> {
+  ): Promise<{ bestMatches: AIJobMatch[]; skillGapAnalysis: string[]; careerAdvice: string; marketInsights: string; }> {
     const topMatch = matches[0];
     const avgScore = matches.reduce((sum, m) => sum + m.matchScore, 0) / matches.length;
     
+    // Analyze skill gaps from missing skills
+    const allMissingSkills = matches.flatMap(m => m.missingSkills);
+    const skillCounts = new Map<string, number>();
+    
+    allMissingSkills.forEach(skill => {
+      skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+    });
+
+    const skillGapAnalysis = Array.from(skillCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([skill]) => skill);
+
+    let careerAdvice: string;
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -352,11 +366,32 @@ export class FastVectorMatcher {
         temperature: 0.3,
       });
 
-      return response.choices[0]?.message?.content || 'Strong profile with good market opportunities.';
+      careerAdvice = response.choices[0]?.message?.content || 'Strong profile with good market opportunities.';
     } catch (error) {
       console.warn('Insights generation failed, using fallback');
-      return `Your ${candidateData.experienceLevel} profile shows strong potential with an average match score of ${Math.round(avgScore)}%. Consider highlighting your ${candidateData.skills.slice(0, 2).join(' and ')} experience.`;
+      careerAdvice = `Your ${candidateData.experienceLevel} profile shows strong potential with an average match score of ${Math.round(avgScore)}%. Consider highlighting your ${candidateData.skills.slice(0, 2).join(' and ')} experience.`;
     }
+
+    // Get unique departments from top matches
+    const topDepartments = matches.slice(0, 10).map(m => m.job.department).filter(Boolean);
+    const uniqueDepartments = [...new Set(topDepartments)];
+
+    return {
+      bestMatches: matches.slice(0, 5).map(match => ({
+        job: match.job,
+        matchScore: Math.round(match.matchScore),
+        matchingSkills: match.matchingSkills,
+        missingSkills: match.missingSkills,
+        explanation: this.generateQuickExplanation(match, candidateData),
+        careerFitScore: Math.round(match.similarity * 100),
+        salaryAlignment: this.calculateSalaryAlignment(candidateData, match.job),
+        recommendations: this.generateQuickRecommendations(match, candidateData),
+        strengthAlignment: this.findStrengthAlignment(candidateData, match.job)
+      })),
+      skillGapAnalysis,
+      careerAdvice,
+      marketInsights: `Strong potential in ${uniqueDepartments.slice(0, 3).join(', ')} departments based on your profile.`
+    };
   }
 
   private createCandidateProfileText(candidateData: EnhancedResumeData): string {
