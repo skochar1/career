@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { initializeSearchIndex } from './search';
+// import { initializeSearchIndex } from './search';
 
 export async function initializeDatabase() {
   // Create tables
@@ -19,6 +19,8 @@ export async function initializeDatabase() {
       salary_max INTEGER,
       employment_type TEXT CHECK(employment_type IN ('full-time', 'part-time', 'contract', 'internship')),
       remote_eligible BOOLEAN DEFAULT FALSE,
+      embedding TEXT, -- JSON array of embedding values
+      embedding_hash TEXT, -- Hash of content used to generate embedding
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       is_active BOOLEAN DEFAULT TRUE
@@ -55,6 +57,7 @@ export async function initializeDatabase() {
   await sql`CREATE INDEX IF NOT EXISTS idx_jobs_active ON jobs(is_active);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_jobs_seniority ON jobs(seniority_level);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_jobs_location ON jobs(location);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_jobs_embedding_hash ON jobs(embedding_hash);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_candidates_session ON candidates(session_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_job_matches_candidate ON job_matches(candidate_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_job_matches_score ON job_matches(match_score DESC);`;
@@ -398,7 +401,7 @@ async function seedSampleJobs() {
     preferred_skills: JSON.parse(job.preferred_skills || '[]')
   }));
   
-  initializeSearchIndex(processedJobs);
+  // initializeSearchIndex(processedJobs);
 }
 
 export interface Job {

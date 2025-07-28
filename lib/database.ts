@@ -33,6 +33,8 @@ function initializeTables() {
       salary_max INTEGER,
       employment_type TEXT CHECK(employment_type IN ('full-time', 'part-time', 'contract', 'internship')),
       remote_eligible BOOLEAN DEFAULT 0,
+      embedding TEXT, -- JSON array of embedding values
+      embedding_hash TEXT, -- Hash of content used to generate embedding
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       is_active BOOLEAN DEFAULT 1
@@ -71,6 +73,7 @@ function initializeTables() {
     CREATE INDEX IF NOT EXISTS idx_jobs_active ON jobs(is_active);
     CREATE INDEX IF NOT EXISTS idx_jobs_seniority ON jobs(seniority_level);
     CREATE INDEX IF NOT EXISTS idx_jobs_location ON jobs(location);
+    CREATE INDEX IF NOT EXISTS idx_jobs_embedding_hash ON jobs(embedding_hash);
     CREATE INDEX IF NOT EXISTS idx_candidates_session ON candidates(session_id);
     CREATE INDEX IF NOT EXISTS idx_job_matches_candidate ON job_matches(candidate_id);
     CREATE INDEX IF NOT EXISTS idx_job_matches_score ON job_matches(match_score DESC);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseResume } from '../../../lib/resume-parser';
 import { analyzeResumeWithAI } from '../../../lib/ai-resume-analyzer';
-import { calculateJobMatches } from '../../../lib/job-matcher';
+import { FastVectorMatcher } from '../../../lib/fast-vector-matcher';
 import { matchCache } from '../../../lib/match-cache';
 
 // Use PostgreSQL in production, SQLite in development
@@ -234,10 +234,73 @@ export async function POST(request: NextRequest) {
     matchCache.invalidateSession(sessionId);
     debug.cacheInvalidated = sessionId.substring(0, 8) + '...';
 
-    // Calculate job matches
+    // Calculate job matches using fast vector matching
     debug.jobMatchStart = true;
-    await calculateJobMatches(candidateId, resumeData);
+    
+    // Get active jobs for matching
+    let jobs;
+    if (isProduction) {
+      const { rows } = await dbModule.sql`
+        SELECT id, title, description, company, location, department, seniority_level, 
+               required_skills, preferred_skills, employment_type, salary_min, salary_max, 
+               remote_eligible, embedding, embedding_hash
+        FROM jobs WHERE is_active = true
+        LIMIT 100
+      `;
+      jobs = rows.map((row: any) => ({
+        ...row,
+        required_skills: JSON.parse(row.required_skills || '[]'),
+        preferred_skills: JSON.parse(row.preferred_skills || '[]'),
+        remote_eligible: row.remote_eligible ? 1 : 0
+      }));
+    } else {
+      const db = dbModule.getDatabase();
+      const stmt = db.prepare(`
+        SELECT id, title, description, company, location, department, seniority_level, 
+               required_skills, preferred_skills, employment_type, salary_min, salary_max, 
+               remote_eligible, embedding, embedding_hash
+        FROM jobs WHERE is_active = 1
+        LIMIT 100
+      `);
+      jobs = stmt.all().map((row: any) => ({
+        ...row,
+        required_skills: JSON.parse(row.required_skills || '[]'),
+        preferred_skills: JSON.parse(row.preferred_skills || '[]')
+      }));
+    }
+
+    // Use fast vector matcher
+    const vectorMatcher = new FastVectorMatcher();
+    const matchResult = await vectorMatcher.generateJobMatches(resumeData, jobs, sessionId, 50);
+    
+    // Store top matches in database for recommendations API
+    for (const match of matchResult.matches.slice(0, 20)) {
+      try {
+        if (isProduction) {
+          await dbModule.sql`
+            INSERT INTO job_matches (candidate_id, job_id, match_score, matching_skills, created_at)
+            VALUES (${candidateId}, ${match.job.id}, ${match.matchScore}, 
+                    ${JSON.stringify(match.matchingSkills)}, CURRENT_TIMESTAMP)
+            ON CONFLICT (candidate_id, job_id) DO UPDATE SET
+              match_score = EXCLUDED.match_score,
+              matching_skills = EXCLUDED.matching_skills,
+              created_at = EXCLUDED.created_at
+          `;
+        } else {
+          const db = dbModule.getDatabase();
+          const stmt = db.prepare(`
+            INSERT OR REPLACE INTO job_matches (candidate_id, job_id, match_score, matching_skills, created_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+          `);
+          stmt.run(candidateId, match.job.id, match.matchScore, JSON.stringify(match.matchingSkills));
+        }
+      } catch (matchError) {
+        console.warn('Failed to store job match:', matchError);
+      }
+    }
+    
     debug.jobMatchComplete = true;
+    debug.totalMatches = matchResult.matches.length;
 
     // Print the final debug state to server console as well
     console.log('[🔥 API] Debug:', JSON.stringify(debug, null, 2));
