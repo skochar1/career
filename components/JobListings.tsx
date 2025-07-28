@@ -69,7 +69,9 @@ export function JobListings({
       setSessionId(newSessionId);
       setIsPersonalized(true);
       setParsedResumeData(parsedData);
-      fetchPersonalizedJobs(newSessionId);
+      // Clear cache to force fresh fetch for new resume
+      setAllPersonalizedJobs([]);
+      fetchPersonalizedJobs(newSessionId, true); // Force refresh for new resume
     };
 
     // Listen for UI refresh events to reset state
@@ -88,7 +90,7 @@ export function JobListings({
         if (!isPersonalized) {
           setSessionId(storedSessionId);
           setIsPersonalized(true);
-          fetchPersonalizedJobs(storedSessionId);
+          fetchPersonalizedJobs(storedSessionId, false); // Use cache
         }
       } else {
         // Only reset if no session exists
@@ -127,7 +129,9 @@ export function JobListings({
     const loadJobs = async () => {
       try {
         if (isPersonalized && sessionId) {
-          if (isMounted) await fetchPersonalizedJobs(sessionId);
+          // For personalized jobs, only force refresh if session changed, otherwise use cache
+          const shouldForceRefresh = sessionId !== sessionId; // This will be false, using cache by default
+          if (isMounted) await fetchPersonalizedJobs(sessionId, false); // Always use cache for filter changes
         } else if (!isPersonalized) {
           if (isMounted) await fetchDefaultJobs(1);
         }
@@ -288,9 +292,26 @@ export function JobListings({
     return params.toString();
   };
 
-  const fetchPersonalizedJobs = async (sessionId: string) => {
+  const fetchPersonalizedJobs = async (sessionId: string, forceRefresh = false) => {
     setLoading(true);
     try {
+      // Use cached results if available and not forcing refresh
+      if (!forceRefresh && allPersonalizedJobs.length > 0) {
+        console.log(`🎯 Using cached ${allPersonalizedJobs.length} personalized jobs`);
+        // Apply client-side filtering to cached results
+        const filteredJobs = applyClientSideFilters(allPersonalizedJobs);
+        console.log(`🎯 After filtering: ${filteredJobs.length} jobs`);
+        setTotalJobs(filteredJobs.length);
+        
+        const firstPage = filteredJobs.slice(0, 5);
+        setJobs(firstPage);
+        setHasMore(filteredJobs.length > 5);
+        setCurrentPage(1);
+        setPersonalizedCurrentPage(1);
+        setLoading(false);
+        return;
+      }
+      
       const queryString = buildPersonalizedQueryParams(sessionId);
       const res = await fetch(`/api/recommendations?${queryString}`);
       
@@ -310,14 +331,20 @@ export function JobListings({
         const filteredRecommendations = data.recommendations.filter((job: any) => 
           !job.match_score || job.match_score > 50
         );
+        
+        // Cache the full results on initial load
         setAllPersonalizedJobs(filteredRecommendations);
-        setTotalJobs(filteredRecommendations.length);
+        console.log(`🎯 Cached ${filteredRecommendations.length} personalized jobs for session`);
+        
+        // Apply client-side filtering
+        const filteredJobs = applyClientSideFilters(filteredRecommendations);
+        setTotalJobs(filteredJobs.length);
         setPersonalizedCurrentPage(1);
         
         // Show first 5 jobs
-        const firstPage = filteredRecommendations.slice(0, 5);
+        const firstPage = filteredJobs.slice(0, 5);
         setJobs(firstPage);
-        setHasMore(filteredRecommendations.length > 5);
+        setHasMore(filteredJobs.length > 5);
         setCurrentPage(1);
       } else {
         // Fallback to default jobs if no recommendations
@@ -328,7 +355,6 @@ export function JobListings({
       }
     } catch (error) {
       console.error('Error fetching personalized jobs:', error);
-      // Set empty state instead of switching modes to avoid loops
       setJobs([]);
       setTotalJobs(0);
       setHasMore(false);
@@ -338,22 +364,103 @@ export function JobListings({
     }
   };
 
+  // Apply client-side filtering to personalized jobs
+  const applyClientSideFilters = (jobs: any[]) => {
+    let filteredJobs = [...jobs];
+    
+    const currentFilters = externalFilters || filters;
+    
+    // Apply search filter
+    if (searchQuery?.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      filteredJobs = filteredJobs.filter((job: any) => 
+        job.title.toLowerCase().includes(searchLower) ||
+        job.description.toLowerCase().includes(searchLower) ||
+        job.company.toLowerCase().includes(searchLower) ||
+        (job.required_skills || []).some((skill: string) => skill.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply location filter
+    if (locationQuery?.trim() && !currentFilters?.location) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        job.location.toLowerCase().includes(locationQuery.toLowerCase())
+      );
+    }
+    
+    if (currentFilters?.location) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        job.location.toLowerCase().includes(currentFilters.location.toLowerCase())
+      );
+    }
+    
+    // Apply department filter
+    if (currentFilters?.department?.length > 0) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        currentFilters.department.some((dept: string) => 
+          job.department.toLowerCase().includes(dept.toLowerCase())
+        )
+      );
+    }
+    
+    // Apply employment type filter
+    if (currentFilters?.jobType?.length > 0) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        currentFilters.jobType.some((type: string) => 
+          job.employment_type.toLowerCase() === type.toLowerCase()
+        )
+      );
+    }
+    
+    // Apply seniority filter
+    if (currentFilters?.seniority) {
+      filteredJobs = filteredJobs.filter((job: any) => 
+        job.seniority_level.toLowerCase() === currentFilters.seniority.toLowerCase()
+      );
+    }
+    
+    // Apply work type filters
+    if (currentFilters?.workType?.length > 0) {
+      filteredJobs = filteredJobs.filter((job: any) => {
+        const workTypes = currentFilters.workType;
+        
+        // If Remote is selected and job is remote eligible
+        if (workTypes.includes('Remote') && job.remote_eligible === 1) return true;
+        
+        // If On-site is selected and job is not remote eligible
+        if (workTypes.includes('On-site') && job.remote_eligible === 0) return true;
+        
+        // If Hybrid is selected and job mentions hybrid
+        if (workTypes.includes('Hybrid') && 
+            (job.title.toLowerCase().includes('hybrid') || job.description.toLowerCase().includes('hybrid'))) {
+          return true;
+        }
+        
+        // If multiple work types are selected, allow jobs that match any of them
+        return false;
+      });
+    }
+    
+    return filteredJobs;
+  };
+
   const loadMoreJobs = async () => {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
     
     if (isPersonalized) {
-      // Load more from cached personalized jobs
+      // Load more from filtered cached personalized jobs
+      const filteredJobs = applyClientSideFilters(allPersonalizedJobs);
       const nextPage = personalizedCurrentPage + 1;
       const startIdx = (nextPage - 1) * 5;
       const endIdx = startIdx + 5;
-      const nextJobs = allPersonalizedJobs.slice(startIdx, endIdx);
+      const nextJobs = filteredJobs.slice(startIdx, endIdx);
       
       if (nextJobs.length > 0) {
         setJobs(prev => [...prev, ...nextJobs]);
         setPersonalizedCurrentPage(nextPage);
-        setHasMore(endIdx < allPersonalizedJobs.length);
+        setHasMore(endIdx < filteredJobs.length);
       } else {
         setHasMore(false);
       }
