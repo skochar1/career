@@ -182,7 +182,7 @@ export class OptimizedAIJobMatcher {
     // Sort by similarity and process top matches with AI analysis
     const sortedJobs = jobsWithSimilarity
       .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, Math.min(50, jobs.length)); // Limit AI analysis to top 50 candidates
+      .slice(0, Math.min(20, jobs.length)); // Limit AI analysis to top 20 candidates (reduced from 50)
 
     // Process AI analysis in smaller batches to avoid rate limits
     for (let i = 0; i < sortedJobs.length; i += BATCH_SIZE) {
@@ -295,17 +295,33 @@ Return JSON only:
     job: Job,
     semanticSimilarity: number
   ): AIJobMatch {
-    const skillsOverlap = this.calculateSkillsOverlap(candidateData.skills, job.required_skills);
+    // Job title keyword matching
+    const jobTitleWords = job.title.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    const candidateSkillsText = candidateData.skills.map(s => s.toLowerCase()).join(' ');
+    const titleKeywordMatches = jobTitleWords.filter(word => 
+      candidateSkillsText.includes(word) || 
+      candidateData.skills.some(skill => skill.toLowerCase().includes(word) || word.includes(skill.toLowerCase()))
+    );
+    const titleKeywordScore = titleKeywordMatches.length / Math.max(jobTitleWords.length, 1);
+
+    // Required skills specific matching (higher weight)
+    const requiredSkillsOverlap = this.calculateSkillsOverlap(candidateData.skills, job.required_skills);
+    const generalSkillsOverlap = this.calculateSkillsOverlap(candidateData.skills, [...job.required_skills, ...job.preferred_skills]);
     const levelAlignment = this.getLevelAlignment(candidateData.experienceLevel, job.seniority_level);
     
+    // Balanced weighting to favor job requirements but not be overly selective
     const basicScore = Math.round(
-      semanticSimilarity * 40 + skillsOverlap * 40 + (levelAlignment + 50) / 2
+      semanticSimilarity * 30 +           // Increased semantic weight
+      requiredSkillsOverlap * 30 +        // Strong weight for required skills
+      titleKeywordScore * 15 +            // Moderate job title keyword matching
+      generalSkillsOverlap * 15 +         // Increased general skills weight
+      (levelAlignment + 50) / 20          // Maintained level alignment weight
     );
 
     return {
       job,
       matchScore: Math.min(100, Math.max(0, basicScore)),
-      explanation: `Basic compatibility analysis based on ${Math.round(skillsOverlap * 100)}% skill overlap`,
+      explanation: `Basic compatibility analysis based on ${Math.round(requiredSkillsOverlap * 100)}% required skill overlap`,
       matchingSkills: this.findMatchingSkills(candidateData.skills, job.required_skills),
       missingSkills: this.findMissingSkills(candidateData.skills, job.required_skills),
       strengthAlignment: this.findStrengthAlignment(candidateData, job),

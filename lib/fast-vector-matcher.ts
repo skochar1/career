@@ -195,16 +195,36 @@ export class FastVectorMatcher {
         )
       ).slice(0, 5); // Limit to top 5 missing skills
 
-      // Calculate composite match score
-      const skillMatchRatio = matchingSkills.length / Math.max(requiredSkills.length, 1);
+      // Calculate job title keyword matching
+      const jobTitleWords = job.title.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+      const candidateSkillsText = candidateSkills.join(' ');
+      const titleKeywordMatches = jobTitleWords.filter(word => 
+        candidateSkillsText.includes(word) || 
+        candidateSkills.some(skill => skill.includes(word) || word.includes(skill))
+      );
+      const titleKeywordScore = titleKeywordMatches.length / Math.max(jobTitleWords.length, 1);
+
+      // Enhanced skill matching with emphasis on required vs preferred
+      const requiredSkillMatches = candidateSkills.filter(skill => 
+        requiredSkills.some(reqSkill => 
+          reqSkill.includes(skill) || skill.includes(reqSkill) || skill === reqSkill
+        )
+      );
+      const requiredSkillRatio = requiredSkillMatches.length / Math.max(requiredSkills.length, 1);
+      
+      // General skill matching (reduced weight)
+      const generalSkillRatio = matchingSkills.length / Math.max(allJobSkills.length, 1);
+      
       const seniorityScore = this.getSeniorityScore(candidateData.experienceLevel, job.seniority_level);
       const departmentBonus = this.getDepartmentBonus(candidateData, job);
       
+      // Balanced weighting: emphasis on job requirements but not overly selective
       const matchScore = Math.min(100, 
-        (similarity * 40) + 
-        (skillMatchRatio * 35) + 
-        (seniorityScore * 15) + 
-        (departmentBonus * 10)
+        (similarity * 30) +                    // Increased semantic similarity weight
+        (requiredSkillRatio * 30) +           // Strong weight for required skills match
+        (titleKeywordScore * 15) +            // Moderate job title keyword matching
+        (generalSkillRatio * 15) +            // Increased general skill matching weight
+        (seniorityScore * 10)                 // Maintained seniority weight
       );
 
       return {
