@@ -52,6 +52,7 @@ export function JobListings({
   const [filters, setFilters] = useState<any>(null);
   const [allPersonalizedJobs, setAllPersonalizedJobs] = useState<any[]>([]);
   const [personalizedCurrentPage, setPersonalizedCurrentPage] = useState(1);
+  const [isFetchingPersonalized, setIsFetchingPersonalized] = useState(false);
 
   useEffect(() => {
     // Always start with default jobs on page load
@@ -71,6 +72,7 @@ export function JobListings({
       setParsedResumeData(parsedData);
       // Clear cache to force fresh fetch for new resume
       setAllPersonalizedJobs([]);
+      setIsFetchingPersonalized(false); // Reset fetching flag
       fetchPersonalizedJobs(newSessionId, true); // Force refresh for new resume
     };
 
@@ -311,6 +313,13 @@ export function JobListings({
       return;
     }
     
+    // Skip if already fetching to prevent race conditions
+    if (isFetchingPersonalized) {
+      console.log(`🎯 Already fetching personalized jobs, skipping duplicate call`);
+      return;
+    }
+    
+    setIsFetchingPersonalized(true);
     setLoading(true);
     console.log(`🎯 Fetching personalized jobs for session ${sessionId.substring(0, 8)}...`);
     
@@ -364,6 +373,7 @@ export function JobListings({
       setCurrentPage(1);
     } finally {
       setLoading(false);
+      setIsFetchingPersonalized(false);
     }
   };
 
@@ -484,6 +494,7 @@ export function JobListings({
     setSavedJobs(new Set());
     setAllPersonalizedJobs([]);
     setPersonalizedCurrentPage(1);
+    setIsFetchingPersonalized(false);
     fetchDefaultJobs();
     
     // Dispatch UI refresh event to notify other components
